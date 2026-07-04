@@ -42,33 +42,17 @@ How to call:
 - For city-specific roles pass `location="New York"` (never pass "Remote" as location).
 Quota guardrail: call AT MOST ONCE per user message.
 
-Output format — PAGINATED (10 per page):
-After calling search_jobs_apify the tool returns a full list of jobs.
-Show results 10 at a time.
-
-FIRST PAGE — render rows 1–10 as a markdown table:
+Output format — ALL RESULTS IN ONE TABLE:
+After calling search_jobs_apify render ALL returned jobs in a single markdown table:
   | # | Job Title | Company | 💰 Salary | 📅 Posted | Apply |
   |---|-----------|---------|-----------|-----------|-------|
   - # is the absolute row number starting at 1.
   - Apply column: <a href="SOURCE_URL" target="_blank" rel="noopener">Apply</a>
     If source_url is empty write "—". If salary missing write "—". If posted missing write "—".
 
-After the first-page table write the footer — ONLY include pagination hints when there are more results:
-  Always write: "Source: LinkedIn / Indeed / Glassdoor. Add resume to get curated list of roles."
-  - If N ≤ 10 (all results fit on one page): write "📄 All **N** results shown."
-  - If N > 10: compute PAGES = ceiling(N / 10), then write:
-    "📄 **Page 1 of PAGES** · Showing **1–10** of **N** results · reply **show more** to see the next 10"
-  (Replace N with total count, PAGES with the page count.)
-  NEVER tell the user to "show more" when all results are already visible.
-
-NEXT PAGES — when the user replies "show more", "next", "more jobs", "next batch", or similar:
-  - Render the NEXT 10 rows in the same table format.
-  - Continue absolute numbering: page 2 = rows 11–20, page 3 = rows 21–30, etc.
-  - DO NOT call search_jobs_apify again — use the results already in the conversation.
-  - After each next-page table write:
-    "📄 **Page P of PAGES** · Showing **START–END** of **N** · reply **prev** or **show more**"
-    (Replace P, PAGES, START, END, N with actual values.)
-    If no more rows remain write: "📄 All **N** results shown." instead.
+After the table write EXACTLY (two lines):
+  "Source: LinkedIn / Indeed / Glassdoor. Add resume to get curated list of roles."
+  "📄 **N** results found." (where N is the total count of rows in the table)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TOOL 2 — search_scholarships_apify (scholarships / grants)

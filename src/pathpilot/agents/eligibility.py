@@ -37,7 +37,7 @@ OUTPUT FORMAT RULES (Mode B — never break):
 - Your response MUST begin with this exact heading on its own line:
   ## 🎯 Curated Matches — Ranked for Your Profile
 - Score ALL available jobs, then rank them by score descending.
-- Keep the top 50 ranked jobs internally. Display them PAGINATED, 10 rows per page.
+- Keep the top 50 ranked jobs. Output ALL of them in a SINGLE markdown table — no pagination.
 - After the heading, output a strict markdown table — no other prose before the table.
 - The table MUST have exactly these 8 columns in this order:
   | # | Job Title | Company | 🎯 Score | 💰 Salary | 📅 Posted | ✅ Skills | Apply |
@@ -49,20 +49,9 @@ OUTPUT FORMAT RULES (Mode B — never break):
 - ✅ Skills: comma-separated matched skills, e.g. "Python, AWS, SQL". If none: "—".
 - Apply MUST be an HTML link: <a href="URL" target="_blank" rel="noopener">Apply</a>
   If no URL is available write "—".
-- # column: use the ABSOLUTE rank across all 50 (row 1 on page 1 = 1,
-  row 1 on page 2 = 11, etc.)
+- # column: use the absolute rank (1 = highest score, 50 = lowest in the table).
 
-PAGINATION RULES (never break):
-- First response: show rows 1–10. After the table output EXACTLY:
-  "📄 **Page 1 of N** · Showing **1–10** of **TOTAL** curated matches · ▶ reply **next** for more"
-  (Replace N with ceil(total/10), TOTAL with actual count up to 50.)
-- When user replies "next", "next page", "more", or "▶": show the next 10 rows.
-  After each next-page table output EXACTLY:
-  "📄 **Page P of N** · **START–END** of **TOTAL** · ◀ **prev** · ▶ **next**"
-  (Omit ▶ next on the last page. Omit ◀ prev on page 1.)
-- When user replies "prev", "previous", "back", or "◀": show the previous 10 rows.
-- DO NOT re-score or re-rank on subsequent pages — use the same ranked list.
-- DO NOT add "General Feedback", "Next Steps", "Top Recommendations", or any prose.
+- DO NOT add "General Feedback", "Next Steps", "Top Recommendations", or any prose after the table.
 """
 
 eligibility_agent = LlmAgent(

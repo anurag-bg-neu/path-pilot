@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, KeyboardEvent, useMemo } from 'react'
 import { marked } from 'marked'
-import type { ChatMessage, PaginationState, AdkPart, SavedSession } from './types'
+import type { ChatMessage, AdkPart, SavedSession } from './types'
 import { createSession, streamAgent, mimeType, fileToBase64 } from './api'
 
 marked.setOptions({ breaks: true, gfm: true })
@@ -35,14 +35,6 @@ function loadHistory(): SavedSession[] {
   catch { return [] }
 }
 
-function detectPagination(text: string): Partial<PaginationState> | null {
-  const m = text.match(/page\s+(\d+)\s+of\s+(\d+)/i)
-  if (!m) return null
-  const current = parseInt(m[1], 10)
-  const total   = parseInt(m[2], 10)
-  return { visible: true, current, total, hasPrev: current > 1, hasNext: current < total }
-}
-
 type QuickReplySet = { options: { label: string; value: string }[] } | null
 
 function detectQuickReplies(text: string): QuickReplySet {
@@ -50,11 +42,56 @@ function detectQuickReplies(text: string): QuickReplySet {
     return {
       options: [
         { label: '✅ Yes, Tier 1 tech companies only', value: 'yes' },
-        { label: '🌐 No, show all companies',     value: 'no'  },
+        { label: '🌐 No, show all companies',          value: 'no'  },
       ],
     }
   }
   return null
+}
+
+interface ExtractedTable {
+  headers: string[]
+  rows: string[][]
+  preMd: string
+  postMd: string
+}
+
+function extractTableFromMd(md: string): ExtractedTable | null {
+  const lines = md.replace(/\r\n/g, '\n').split('\n')
+
+  // Find first line that starts with |
+  let tableStart = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith('|')) { tableStart = i; break }
+  }
+  if (tableStart === -1) return null
+
+  // Extend to last consecutive | line
+  let tableEnd = tableStart
+  for (let i = tableStart + 1; i < lines.length; i++) {
+    if (lines[i].trim().startsWith('|')) tableEnd = i
+    else break
+  }
+
+  // Need at least: header + separator + 1 data row
+  if (tableEnd < tableStart + 2) return null
+
+  const parseRow = (line: string): string[] =>
+    line.split('|').slice(1, -1).map(c => c.trim())
+
+  const tableLines = lines.slice(tableStart, tableEnd + 1)
+  const headers = parseRow(tableLines[0])
+  // tableLines[1] is the separator (---|---...), skip it
+  const rows = tableLines.slice(2).map(parseRow).filter(r => r.some(c => c !== ''))
+
+  if (rows.length === 0) return null
+
+  return {
+    headers,
+    rows,
+    preMd: lines.slice(0, tableStart).join('\n').trim(),
+    postMd: lines.slice(tableEnd + 1).join('\n').trim(),
+  }
 }
 
 // ── Animated loading indicator ──────────────────────────────────────────────
@@ -90,7 +127,6 @@ function TypingIndicator({ lastUserMsg }: { lastUserMsg: string }) {
 
   const { icon, text } = msgs[idx]
 
-  // Inline styles guarantee visibility regardless of external CSS state
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 2px', minWidth: 230, whiteSpace: 'nowrap' }}>
       <span key={`i${idx}`} style={{ fontSize: 22, display: 'inline-block' }} className="ti-icon">{icon}</span>
@@ -98,6 +134,63 @@ function TypingIndicator({ lastUserMsg }: { lastUserMsg: string }) {
       <span style={{ color: '#6c8bff', fontSize: 18, animationDelay: '0s'   }} className="ti-dot">•</span>
       <span style={{ color: '#6c8bff', fontSize: 18, animationDelay: '0.3s' }} className="ti-dot">•</span>
       <span style={{ color: '#6c8bff', fontSize: 18, animationDelay: '0.6s' }} className="ti-dot">•</span>
+    </div>
+  )
+}
+
+// ── Client-side carousel ────────────────────────────────────────────────────
+const PAGE_SIZE = 10
+
+interface TableCarouselProps {
+  msgId: string
+  data: { headers: string[]; rows: string[][] }
+  preMd: string
+  postMd: string
+  pageMap: Map<string, number>
+  setPageMap: (updater: (prev: Map<string, number>) => Map<string, number>) => void
+}
+
+function TableCarousel({ msgId, data, preMd, postMd, pageMap, setPageMap }: TableCarouselProps) {
+  const page = pageMap.get(msgId) ?? 1
+  const totalPages = Math.ceil(data.rows.length / PAGE_SIZE)
+  const start = (page - 1) * PAGE_SIZE
+  const visibleRows = data.rows.slice(start, start + PAGE_SIZE)
+
+  const goTo = (newPage: number) => {
+    setPageMap(m => new Map(m).set(msgId, newPage))
+  }
+
+  return (
+    <div className="table-carousel">
+      {preMd && <div className="md-content" dangerouslySetInnerHTML={{ __html: renderMd(preMd) }} />}
+      <div className="table-scroll">
+        <table className="carousel-table">
+          <thead>
+            <tr>
+              {data.headers.map((h, i) => (
+                <th key={i} dangerouslySetInnerHTML={{ __html: h }} />
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRows.map((row, ri) => (
+              <tr key={ri}>
+                {row.map((cell, ci) => (
+                  <td key={ci} dangerouslySetInnerHTML={{ __html: cell }} />
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {postMd && <div className="md-content" dangerouslySetInnerHTML={{ __html: renderMd(postMd) }} />}
+      {totalPages > 1 && (
+        <div className="carousel-nav">
+          <button className="btn" disabled={page === 1} onClick={() => goTo(page - 1)}>◀ Prev</button>
+          <span className="carousel-page-info">Page {page} of {totalPages} · {data.rows.length} results</span>
+          <button className="btn primary" disabled={page === totalPages} onClick={() => goTo(page + 1)}>Next ▶</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -112,22 +205,16 @@ const HINTS = [
 ]
 
 export default function App() {
-  const [sessionId, setSessionId]           = useState<string | null>(null)
-  const [connected, setConnected]           = useState(false)
-  const [messages, setMessages]             = useState<ChatMessage[]>([])
-  const [input, setInput]                   = useState('')
-  const [loading, setLoading]               = useState(false)
-  const [error, setError]                   = useState<string | null>(null)
-  const [pendingFile, setPendingFile]       = useState<File | null>(null)
-  const [quickReplies, setQuickReplies]     = useState<QuickReplySet>(null)
-  const [lastUserMsg, setLastUserMsg]       = useState('')
-  const [pagination, setPagination]         = useState<PaginationState>({
-    visible: false, current: 1, total: 1, hasNext: false, hasPrev: false,
-  })
-  // ID of the message bubble that owns the current paginated results table
-  const [resultsMessageId, setResultsMessageId] = useState<string | null>(null)
-  // While navigating pages, show a shimmer on the results bubble instead of a spinner
-  const [isNavigating, setIsNavigating]     = useState(false)
+  const [sessionId, setSessionId]       = useState<string | null>(null)
+  const [connected, setConnected]       = useState(false)
+  const [messages, setMessages]         = useState<ChatMessage[]>([])
+  const [input, setInput]               = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState<string | null>(null)
+  const [pendingFile, setPendingFile]   = useState<File | null>(null)
+  const [quickReplies, setQuickReplies] = useState<QuickReplySet>(null)
+  const [lastUserMsg, setLastUserMsg]   = useState('')
+  const [pageMap, setPageMap]           = useState<Map<string, number>>(new Map())
 
   // ── Session history ────────────────────────────────────────────────────────
   const [history, setHistory]               = useState<SavedSession[]>(loadHistory)
@@ -170,14 +257,12 @@ export default function App() {
     })
   }, [sessionId])
 
-  // Auto-save 1 s after messages settle (debounced to avoid mid-stream saves)
   useEffect(() => {
     if (messages.length === 0) return
     const t = setTimeout(() => saveSession(messages), 1000)
     return () => clearTimeout(t)
   }, [messages, saveSession])
 
-  // Save immediately on page unload and show browser's leave confirmation
   useEffect(() => {
     const onUnload = (e: BeforeUnloadEvent) => {
       if (messages.length === 0) return
@@ -189,7 +274,6 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', onUnload)
   }, [messages, saveSession])
 
-  // Show leave-notice banner once after the first assistant reply arrives
   useEffect(() => {
     if (!leaveNoticeShown.current && messages.some(m => m.role === 'agent' && !m.isTyping && m.html)) {
       leaveNoticeShown.current = true
@@ -197,7 +281,7 @@ export default function App() {
     }
   }, [messages])
 
-  // ── Normal send (adds a user bubble + a new agent bubble) ──────────────────
+  // ── Send ───────────────────────────────────────────────────────────────────
   const send = useCallback(async (text: string, file?: File) => {
     if (!sessionId || loading) return
     const trimmed = text.trim()
@@ -206,10 +290,8 @@ export default function App() {
     setError(null)
     setLoading(true)
     setQuickReplies(null)
-    // Preserve job-search intent across short replies (yes / no / ok)
     if (trimmed.length > 5 && !/^(yes|no|more|next|prev|show more|sure|ok)$/i.test(trimmed)) {
       setLastUserMsg(trimmed)
-      setResultsMessageId(null)  // new search → reset carousel
     }
 
     const userMsg: ChatMessage = {
@@ -235,8 +317,7 @@ export default function App() {
       for await (const event of streamAgent(sessionId, parts)) {
         if (event.error) { setError(event.error); break }
         if (!event.content) continue
-        // resume_parser output is an internal PII-free profile — never show it to the user.
-        // eligibility (and every other agent) renders normally.
+        // resume_parser output is internal (PII-free profile) — never show it to the user
         if (event.author === 'resume_parser') continue
         for (const part of event.content.parts) {
           if (part.text) agentText += part.text
@@ -249,58 +330,27 @@ export default function App() {
             m.id === typingId ? { ...m, html, isTyping: false, rawText: agentText } : m
           ))
           replaceTyping = false
-          const pg = detectPagination(agentText)
-          if (pg) setPagination(prev => ({ ...prev, ...pg, visible: true }))
         }
       }
     } catch (e) {
       setError(`Stream error: ${(e as Error).message}`)
     } finally {
       if (replaceTyping) setMessages(prev => prev.filter(m => m.id !== typingId))
-      if (agentText) setQuickReplies(detectQuickReplies(agentText))
-      // Register this bubble as the carousel target if it contains paginated results
-      if (detectPagination(agentText)) setResultsMessageId(typingId)
+      if (agentText) {
+        setQuickReplies(detectQuickReplies(agentText))
+        // Parse table for client-side carousel (runs once after stream completes)
+        const extracted = extractTableFromMd(agentText)
+        if (extracted) {
+          setMessages(prev => prev.map(m =>
+            m.id === typingId
+              ? { ...m, tableData: { headers: extracted.headers, rows: extracted.rows }, preMd: extracted.preMd, postMd: extracted.postMd }
+              : m
+          ))
+        }
+      }
       setLoading(false)
     }
   }, [sessionId, loading])
-
-  // ── Navigate pages — no new bubbles, update results message in-place ───────
-  const navigatePage = useCallback(async (cmd: 'show more' | 'prev') => {
-    if (!sessionId || loading || !resultsMessageId) return
-
-    setError(null)
-    setLoading(true)
-    setIsNavigating(true)
-
-    const parts: AdkPart[] = [{ text: cmd }]
-    let agentText = ''
-
-    try {
-      for await (const event of streamAgent(sessionId, parts)) {
-        if (event.error) { setError(event.error); break }
-        if (!event.content) continue
-        for (const part of event.content.parts) {
-          if (part.text) agentText += part.text
-        }
-        // Stream new content directly into the existing results bubble
-        const html = renderMd(agentText)
-        setMessages(prev => prev.map(m =>
-          m.id === resultsMessageId ? { ...m, html, rawText: agentText } : m
-        ))
-      }
-    } catch (e) {
-      setError(`Stream error: ${(e as Error).message}`)
-    } finally {
-      setIsNavigating(false)
-      setLoading(false)
-      const pg = detectPagination(agentText)
-      if (pg) {
-        setPagination(prev => ({ ...prev, ...pg, visible: true }))
-      } else if (/All \*\*\d+\*\* results shown/i.test(agentText)) {
-        setPagination(prev => ({ ...prev, hasNext: false }))
-      }
-    }
-  }, [sessionId, loading, resultsMessageId])
 
   const handleSend = useCallback(() => {
     if (!input.trim() && !pendingFile) return
@@ -336,6 +386,16 @@ export default function App() {
     el.style.height = Math.min(el.scrollHeight, 140) + 'px'
   }, [])
 
+  const deleteSession = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setHistory(prev => {
+      const next = prev.filter(s => s.id !== id)
+      localStorage.setItem(LS_KEY, JSON.stringify(next))
+      return next
+    })
+    if (viewingSession?.id === id) setViewingSession(null)
+  }, [viewingSession])
+
   const canSend = !loading && connected && (!!input.trim() || !!pendingFile)
 
   return (
@@ -357,7 +417,6 @@ export default function App() {
         </button>
       </header>
 
-      {/* ── Leave notice — shown once after first reply ── */}
       {leaveNotice && !viewingSession && (
         <div className="leave-notice">
           <span>💾 After leaving this page you can still revisit this conversation, but you won't be able to continue it. It's saved automatically.</span>
@@ -365,7 +424,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ── Read-only bar — shown when browsing history ── */}
       {viewingSession && (
         <div className="readonly-bar">
           <span>📖 Viewing past session — <strong>read only</strong></span>
@@ -395,7 +453,7 @@ export default function App() {
               <div className="msg-label">{msg.role === 'user' ? 'You' : 'PathPilot'}</div>
               {msg.fileName && <span className="msg-filename">📎 {msg.fileName}</span>}
               <div
-                className={`msg-bubble ${isNavigating && msg.id === resultsMessageId ? 'carousel-updating' : ''}`}
+                className="msg-bubble"
                 style={msg.isTyping ? {
                   minWidth: '280px',
                   background: 'linear-gradient(135deg, rgba(108,139,255,0.09) 0%, rgba(167,139,250,0.07) 100%)',
@@ -405,7 +463,9 @@ export default function App() {
                 {msg.isTyping ? (
                   <TypingIndicator lastUserMsg={lastUserMsg} />
                 ) : msg.role === 'agent' ? (
-                  <div className="md-content" dangerouslySetInnerHTML={{ __html: msg.html }} />
+                  msg.tableData
+                    ? <TableCarousel msgId={msg.id} data={msg.tableData} preMd={msg.preMd ?? ''} postMd={msg.postMd ?? ''} pageMap={pageMap} setPageMap={setPageMap} />
+                    : <div className="md-content" dangerouslySetInnerHTML={{ __html: msg.html }} />
                 ) : (
                   <span style={{ whiteSpace: 'pre-wrap' }}>{msg.html}</span>
                 )}
@@ -432,32 +492,6 @@ export default function App() {
           ⚠️ {error}
           <button className="btn" style={{ marginLeft: 'auto', padding: '2px 10px', fontSize: 12 }} onClick={() => setError(null)}>
             Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* ── Carousel pagination bar — navigates in-place ── */}
-      {pagination.visible && (
-        <div className="pagination-bar">
-          <button
-            className="btn"
-            disabled={!pagination.hasPrev || loading}
-            onClick={() => navigatePage('prev')}
-          >
-            ◀ Previous
-          </button>
-          <span className="page-info">
-            {isNavigating
-              ? <span className="page-updating">Updating…</span>
-              : <>Page {pagination.current} of {pagination.total}</>
-            }
-          </span>
-          <button
-            className="btn primary"
-            disabled={!pagination.hasNext || loading}
-            onClick={() => navigatePage('show more')}
-          >
-            Next ▶
           </button>
         </div>
       )}
@@ -495,7 +529,6 @@ export default function App() {
         </div>
       )}
 
-      {/* ── History side panel ── */}
       {historyOpen && (
         <div className="history-overlay" onClick={() => setHistoryOpen(false)}>
           <div className="history-panel" onClick={e => e.stopPropagation()}>
@@ -513,8 +546,15 @@ export default function App() {
                     className={`session-card ${viewingSession?.id === s.id ? 'active' : ''}`}
                     onClick={() => { setViewingSession(s); setHistoryOpen(false) }}
                   >
-                    <div className="session-title">{s.title}</div>
-                    <div className="session-meta">{fmtDate(s.savedAt)} · {s.messages.length} messages</div>
+                    <div className="session-card-body">
+                      <div className="session-title">{s.title}</div>
+                      <div className="session-meta">{fmtDate(s.savedAt)} · {s.messages.length} messages</div>
+                    </div>
+                    <button
+                      className="session-delete"
+                      title="Delete session"
+                      onClick={e => deleteSession(s.id, e)}
+                    >✕</button>
                   </div>
                 ))}
               </div>

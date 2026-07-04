@@ -221,6 +221,10 @@ html, body, #root {
   border: 1px solid var(--border);
   vertical-align: top;
 }
+.md-content td:first-child {
+  white-space: nowrap;
+  min-width: 34px;
+}
 .md-content tr:hover td { background: rgba(255,255,255,0.03); }
 
 .md-content code {
@@ -259,22 +263,51 @@ html, body, #root {
   margin: 12px 0;
 }
 
-/* ── Pagination bar ── */
-.pagination-bar {
+/* ── Carousel (client-side, per-message) ── */
+.table-carousel { width: 100%; overflow: hidden; }
+
+.table-scroll { overflow-x: auto; }
+
+.carousel-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin: 10px 0;
+}
+.carousel-table th {
+  background: var(--surface2);
+  padding: 8px 10px;
+  text-align: left;
+  border: 1px solid var(--border);
+  color: var(--accent2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.carousel-table td {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+.carousel-table td:first-child {
+  white-space: nowrap;
+  min-width: 34px;
+}
+.carousel-table tr:hover td { background: rgba(255,255,255,0.03); }
+.carousel-table a { color: var(--accent); text-decoration: none; }
+.carousel-table a:hover { text-decoration: underline; }
+
+.carousel-nav {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  flex-shrink: 0;
+  padding: 10px 0 4px;
 }
 
-.page-info {
-  font-size: 13px;
-  color: var(--text-muted);
+.carousel-page-info {
   flex: 1;
   text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
 }
 
 .btn {
@@ -460,41 +493,6 @@ textarea::placeholder { color: var(--text-muted); }
   color: var(--accent);
 }
 
-/* ── Carousel in-place update shimmer ── */
-.msg-bubble.carousel-updating {
-  position: relative;
-  overflow: hidden;
-  opacity: 0.55;
-  transition: opacity 0.2s;
-}
-.msg-bubble.carousel-updating::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(108,139,255,0.12) 40%,
-    rgba(167,139,250,0.18) 60%,
-    transparent 100%
-  );
-  animation: shimmer-sweep 1.2s linear infinite;
-}
-@keyframes shimmer-sweep {
-  from { transform: translateX(-100%); }
-  to   { transform: translateX(100%); }
-}
-
-.page-updating {
-  color: var(--accent2);
-  font-style: italic;
-  animation: blink 0.9s ease-in-out infinite;
-}
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-
 /* ── Quick reply buttons ── */
 .quick-replies {
   display: flex;
@@ -654,6 +652,9 @@ textarea::placeholder { color: var(--text-muted); }
 .history-list::-webkit-scrollbar { width: 4px; }
 .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 .session-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -663,6 +664,7 @@ textarea::placeholder { color: var(--text-muted); }
 }
 .session-card:hover { border-color: var(--accent); background: rgba(108,139,255,0.07); }
 .session-card.active { border-color: var(--accent); background: rgba(108,139,255,0.12); }
+.session-card-body { flex: 1; overflow: hidden; }
 .session-title {
   font-size: 13px;
   font-weight: 500;
@@ -673,6 +675,20 @@ textarea::placeholder { color: var(--text-muted); }
   margin-bottom: 4px;
 }
 .session-meta { font-size: 11px; color: var(--text-muted); }
+.session-delete {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+.session-card:hover .session-delete { opacity: 1; }
+.session-delete:hover { color: var(--danger); background: rgba(248,113,113,0.1); }
 
 /* ── Error toast ── */
 .error-banner {

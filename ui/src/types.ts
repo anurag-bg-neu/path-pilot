@@ -4,17 +4,15 @@ export interface ChatMessage {
   id: string
   role: Role
   html: string        // rendered markdown/HTML for agent; escaped text for user
-  rawText?: string    // original text (used for pagination detection)
+  rawText?: string    // original markdown text before rendering
   fileName?: string   // attached file name (user messages)
   isTyping?: boolean
-}
-
-export interface PaginationState {
-  visible: boolean
-  current: number
-  total: number
-  hasNext: boolean
-  hasPrev: boolean
+  tableData?: {
+    headers: string[]
+    rows: string[][]
+  }
+  preMd?: string      // markdown before the table (heading, description)
+  postMd?: string     // markdown after the table (source footer)
 }
 
 export interface SavedSession {
