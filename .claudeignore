@@ -1,0 +1,12 @@
+# Keep secrets and private data out of Claude Code's context window.
+# Note: this is defense-in-depth, not a secrets manager. Secrets still belong in .env
+# (git-ignored) and never in code.
+.env
+.env.*
+*.key
+*.pem
+vault/
+data/private/
+.venv/
+__pycache__/
+ui/node_modules/

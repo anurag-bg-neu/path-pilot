@@ -1,0 +1,31 @@
+# Secrets & environment
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Local PII vault — never commit user data
+vault/
+data/private/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# ADK / local state
+.adk/
+*.sqlite
+
+# OS / editor
+.DS_Store
+.idea/
+
+# Frontend build artifacts
+ui/node_modules/
+ui/dist/
+ui/.vite/
+ui/tsconfig.tsbuildinfo

@@ -1,0 +1,5 @@
+google-adk
+pytest
+pytest-bdd
+fastmcp==3.4.2
+apify-client==3.0.4
