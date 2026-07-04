@@ -49,7 +49,7 @@ function detectQuickReplies(text: string): QuickReplySet {
   if (/would you like me to prioritize.*faang/i.test(text)) {
     return {
       options: [
-        { label: '✅ Yes, FAANG / Big Tech only', value: 'yes' },
+        { label: '✅ Yes, Tier 1 tech companies only', value: 'yes' },
         { label: '🌐 No, show all companies',     value: 'no'  },
       ],
     }
@@ -59,21 +59,20 @@ function detectQuickReplies(text: string): QuickReplySet {
 
 // ── Animated loading indicator ──────────────────────────────────────────────
 const SEARCH_MSGS = [
-  { icon: '🔍', text: 'Searching LinkedIn…'               },
-  { icon: '📋', text: 'Scanning Indeed listings…'         },
-  { icon: '🏢', text: 'Checking Glassdoor & ZipRecruiter…' },
-  { icon: '🌐', text: 'Filtering F-1 eligible roles…'     },
-  { icon: '✨', text: 'Curating top matches…'             },
-  { icon: '📊', text: 'Ranking results…'                  },
-  { icon: '🎯', text: 'Almost there…'                     },
+  { icon: '🔍', text: 'Searching online…'   },
+  { icon: '🌐', text: 'Parsing the web…'    },
+  { icon: '📝', text: 'Filtering response…' },
+  { icon: '🎯', text: 'Curating results…'   },
+  { icon: '📊', text: 'Ranking data…'       },
+  { icon: '⚡', text: 'Almost there…'       },
 ]
 
 const THINK_MSGS = [
-  { icon: '🧠', text: 'Thinking…'               },
-  { icon: '✍️',  text: 'Composing response…'     },
-  { icon: '🔎', text: 'Reviewing your profile…' },
-  { icon: '📝', text: 'Drafting answer…'         },
-  { icon: '⚡', text: 'Almost ready…'           },
+  { icon: '🧠', text: 'Thinking…'             },
+  { icon: '✍️', text: 'Composing response…'   },
+  { icon: '🔎', text: 'Reviewing results…'    },
+  { icon: '📝', text: 'Drafting answer…'      },
+  { icon: '⚡', text: 'Almost ready…'         },
 ]
 
 function TypingIndicator({ lastUserMsg }: { lastUserMsg: string }) {
@@ -105,10 +104,11 @@ function TypingIndicator({ lastUserMsg }: { lastUserMsg: string }) {
 
 const HINTS = [
   '🔍 Find SWE internships for F-1 students',
+  '⭐ Find early career SDE roles in New York',
   '📍 Find mid level SDE roles in California',
   '🎓 Find scholarships for grad students',
   '📄 Upload resume for eligible matches',
-  '✉️  Draft a cover letter for a role',
+  '✉️ Draft a cover letter for a role',
 ]
 
 export default function App() {
@@ -344,7 +344,7 @@ export default function App() {
         <span className="header-logo">✈</span>
         <div>
           <div className="header-title">PathPilot</div>
-          <div className="header-sub">F-1 Career &amp; Scholarship Assistant</div>
+          <div className="header-sub">Career Jobs &amp; Scholarship Assistant</div>
         </div>
         <div className={`status-dot ${connected ? 'connected' : ''}`} />
         <span className="status-label">{connected ? 'Connected' : 'Disconnected'}</span>
@@ -360,7 +360,7 @@ export default function App() {
       {/* ── Leave notice — shown once after first reply ── */}
       {leaveNotice && !viewingSession && (
         <div className="leave-notice">
-          <span>💾 After leaving this page you can still read this conversation, but you won't be able to continue it. It's saved automatically.</span>
+          <span>💾 After leaving this page you can still revisit this conversation, but you won't be able to continue it. It's saved automatically.</span>
           <button onClick={() => setLeaveNotice(false)}>✕</button>
         </div>
       )}
@@ -378,10 +378,10 @@ export default function App() {
       <main className="messages">
         {(viewingSession?.messages ?? messages).length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🧭</div>
+            <div className="empty-icon">🚀</div>
             <div className="empty-title">Welcome to PathPilot</div>
             <div className="empty-sub">
-              Your privacy-first assistant for F-1 job searches, scholarships, and application drafts.
+              Your multi-agent assistant for job searching, scholarships, and application drafts.
             </div>
             <div className="hint-chips">
               {HINTS.map(h => (
