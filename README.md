@@ -128,6 +128,23 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 
 ---
 
+## Concept → file map (for judges)
+
+| Course concept | Implementation | Key file(s) |
+|----------------|---------------|-------------|
+| Multi-agent system (ADK) | Orchestrator + `resume_then_score` SequentialAgent + 4 sub-agents | `src/pathpilot/agent.py` |
+| MCP server | FastMCP server + Discovery seed fallback when `APIFY_TOKEN` absent | `tools/opportunities_mcp.py`, `src/pathpilot/apify_scholarship_scraper.py` |
+| Agent skills | `eligibility-checking`, `resume-parsing`, `draft-coaching` SKILL.md cards | `skills/` |
+| Security | Guardian callbacks (HITL, PII, injection, eligibility lock) + AuditLogPlugin | `src/pathpilot/guardian.py`, `src/pathpilot/plugins.py` |
+
+---
+
+## Demo video
+
+▶ [YouTube demo](https://youtu.be/TODO) — 5-minute walkthrough: job search → FAANG filter → resume upload → ranked eligibility table → cover letter draft → human-in-the-loop approval gate
+
+---
+
 ## Course concepts demonstrated
 
 - **Multi-agent system** — Orchestrator delegates to specialist agents; SequentialAgent for deterministic resume→eligibility pipeline (Day 1, Day 3)

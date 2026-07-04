@@ -1,9 +1,17 @@
-"""Apify scholarship scraper tool — live scholarships via majestic_fund/the-scholarship-scraper-actor."""
+"""Apify scholarship scraper tool — live scholarships via majestic_fund/the-scholarship-scraper-actor.
+
+Falls back to the MCP seed dataset (data/opportunities_seed.json) when APIFY_TOKEN is not set,
+returning the same scholarship/grant rows the FastMCP server (tools/opportunities_mcp.py) exposes.
+"""
+import json
 import logging
 import os
+import pathlib
 from typing import Any
 
 _ACTOR_ID = "majestic_fund/the-scholarship-scraper-actor"
+_SEED_PATH = pathlib.Path(__file__).parent.parent.parent / "data" / "opportunities_seed.json"
+_SCHOLARSHIP_TYPES = {"scholarship", "grant", "fellowship"}
 
 # Hard guardrail: sent to the actor AND used as a post-cap.
 # Never increase this without explicit human approval — each result consumes Apify credits.
@@ -21,6 +29,53 @@ def _extract(item: dict[str, Any], *keys: str, fallback: str = "") -> str:
     return fallback
 
 
+def _seed_scholarships_fallback(
+    keyword: str,
+    education_level: str,
+    field_of_study: str,
+) -> list[dict[str, Any]]:
+    """Return scholarship/grant entries from the MCP seed dataset.
+
+    Called when APIFY_TOKEN is not set — returns the same data the MCP server
+    (tools/opportunities_mcp.py) exposes, labelled so the user knows it is curated
+    fallback data and not live-scraped results.
+    """
+    try:
+        with _SEED_PATH.open(encoding="utf-8") as fh:
+            opps = json.load(fh)["opportunities"]
+    except Exception:
+        return []
+    kw = keyword.lower()
+    level_q = education_level.lower() if education_level else ""
+    field_q = field_of_study.lower() if field_of_study else ""
+    results = []
+    for opp in opps:
+        if opp.get("type", "").lower() not in _SCHOLARSHIP_TYPES:
+            continue
+        title = opp.get("title", "").lower()
+        field = opp.get("field", "").lower()
+        level = opp.get("level", "").lower()
+        if kw and kw not in title and kw not in field:
+            continue
+        if level_q and level not in ("any", "") and level_q not in level:
+            continue
+        if field_q and field not in ("any", "") and field_q not in field:
+            continue
+        amt = opp.get("amount_usd")
+        results.append({
+            "name": opp.get("title", ""),
+            "provider": "🗄️ Curated (MCP seed data)",
+            "amount": f"USD {amt:,}" if amt else "—",
+            "deadline": opp.get("deadline", ""),
+            "field": opp.get("field", "Any"),
+            "level": opp.get("level", "Any"),
+            "apply_url": opp.get("source_url", ""),
+        })
+        if len(results) >= _MAX_SCHOLARSHIPS:
+            break
+    return results
+
+
 def search_scholarships_apify(
     keyword: str,
     education_level: str = "",
@@ -28,6 +83,8 @@ def search_scholarships_apify(
     country: str = "USA",
 ) -> list[dict[str, Any]]:
     """Search live scholarships from Scholarships.com, Fastweb, and College Board via Apify.
+
+    Falls back to the MCP seed dataset when APIFY_TOKEN is not set.
 
     IMPORTANT — only call this tool when the user explicitly asks for scholarships,
     grants, or financial aid. Do NOT call it for job searches.
@@ -44,11 +101,11 @@ def search_scholarships_apify(
     Returns:
         List of up to 5 scholarship dicts with keys: name, provider, amount, deadline,
         field, level, apply_url.
-        Returns empty list when APIFY_TOKEN env var is not set.
     """
     token = os.getenv("APIFY_TOKEN", "")
     if not token:
-        return []
+        log.info("APIFY_TOKEN not set — returning MCP seed fallback for scholarships.")
+        return _seed_scholarships_fallback(keyword, education_level, field_of_study)
 
     from apify_client import ApifyClient  # lazy import — only needed at call time
 

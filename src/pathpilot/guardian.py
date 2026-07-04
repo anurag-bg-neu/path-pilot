@@ -125,6 +125,17 @@ def guardian_before_tool(
     # Log the call without raw args — they may contain PII (guardrail 3)
     slog("info", event="tool_call", tool=tool_name)
 
+    # Guardrail — ELIGIBILITY IS ANALYSIS-ONLY: block any tool call from the eligibility agent.
+    # eligibility has tools=[] so ADK prevents most calls, but this callback is the hard stop
+    # that ensures the run continues gracefully rather than crashing.
+    agent_name: str = getattr(tool_context, "agent_name", None) or ""
+    if agent_name == "eligibility":
+        slog("warning", event="guardian_blocked", tool=tool_name, reason="eligibility_analysis_only")
+        return {
+            "status": "blocked",
+            "message": "Eligibility agent is analysis-only. No tool calls are permitted from this agent.",
+        }
+
     # Guardrail 1 — HUMAN-IN-THE-LOOP: block external real-world actions
     if tool_name in _EXTERNAL_TOOLS:
         slog("warning", event="guardian_blocked", tool=tool_name, reason="human_approval_required")

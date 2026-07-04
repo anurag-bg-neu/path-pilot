@@ -53,8 +53,8 @@ data, model, application/runtime, IAM, observability, governance — applied pra
 - Language: Python 3.10+ (required by ADK).
 - Framework: Google Agent Development Kit (ADK), package `google-adk` (pinned in
   requirements.txt). Docs: https://google.github.io/adk-docs/
-- Model: `gemini-flash-latest` via Google AI Studio (free tier). Do not hardcode a dated
-  model string that may later be deprecated.
+- Model: `gemini-3.1-flash-lite` via Google AI Studio (free tier), overridable via the
+  `PATHPILOT_MODEL` environment variable.
 - Tools/data: expose external capabilities via MCP or ADK tools; declare each tool in
   `architecture.md` before wiring it.
 - Skills: reusable capabilities live in `skills/<name>/SKILL.md` (progressive disclosure).

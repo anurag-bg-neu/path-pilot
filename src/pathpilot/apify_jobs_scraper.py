@@ -8,11 +8,50 @@
 Note: Y Combinator (jobs.ycombinator.com) is not a supported platform in
 agentx/all-jobs-scraper. Jobright is used as the nearest AI-curated equivalent.
 """
+import json
 import logging
 import os
+import pathlib
 import re
 from typing import Any
 from urllib.parse import quote_plus
+
+_SEED_PATH = pathlib.Path(__file__).parent.parent.parent / "data" / "opportunities_seed.json"
+_JOB_TYPES = {"internship", "role", "job"}
+
+
+def _seed_jobs_fallback(keyword: str) -> list[dict[str, Any]]:
+    """Return job/internship/role entries from the MCP seed dataset.
+
+    Called when APIFY_TOKEN is not set — returns the same data the MCP server
+    (tools/opportunities_mcp.py) exposes, labelled so the user knows it is curated
+    fallback data and not live-scraped results.
+    """
+    try:
+        with _SEED_PATH.open(encoding="utf-8") as fh:
+            opps = json.load(fh)["opportunities"]
+    except Exception:
+        return []
+    kw = keyword.lower()
+    results = []
+    for opp in opps:
+        if opp.get("type", "").lower() not in _JOB_TYPES:
+            continue
+        title = opp.get("title", "").lower()
+        field = opp.get("field", "").lower()
+        if kw and kw not in title and kw not in field:
+            continue
+        amt = opp.get("amount_usd")
+        results.append({
+            "name": opp.get("title", ""),
+            "company": "🗄️ Curated (MCP seed data)",
+            "location": "Various",
+            "salary": f"USD {amt:,}/yr" if amt else "—",
+            "source_url": opp.get("source_url", ""),
+            "closing_date": opp.get("deadline", ""),
+            "source": "seed",
+        })
+    return results
 
 _LINKEDIN_ACTOR_ID = "curious_coder/linkedin-jobs-scraper"
 _INDEED_ACTOR_ID   = "kaix/indeed-scraper"
@@ -254,7 +293,8 @@ def search_jobs_apify(
     """
     token = os.getenv("APIFY_TOKEN", "")
     if not token:
-        return []
+        log.info("APIFY_TOKEN not set — returning MCP seed fallback for jobs.")
+        return _seed_jobs_fallback(_expand(queries))
 
     # Expand abbreviations so all actors receive natural-language keywords that
     # match their search indexes (e.g. "SDE" → "Software Development Engineer").
