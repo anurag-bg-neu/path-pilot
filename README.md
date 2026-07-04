@@ -1,6 +1,6 @@
 # PathPilot
 
-**Privacy-first, multi-agent scholarship and career assistant for all job seakers.**
+**Privacy-first, multi-agent scholarship and career assistant for all job seekers.**
 
 Built for the [Kaggle Vibe Coding Capstone](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) — *Agents for Good* track.  
 Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and Gemini.
