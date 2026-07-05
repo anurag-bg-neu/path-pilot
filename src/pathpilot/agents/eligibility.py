@@ -1,4 +1,4 @@
-"""Eligibility agent: judges opportunities against the student's profile."""
+"""Eligibility agent: judges opportunities against the job seeker's profile."""
 import os
 import pathlib
 
@@ -31,7 +31,7 @@ TOOL RULE — CRITICAL (crashes the app if broken, so NEVER break it):
 - Never fetch job descriptions, never search — that is Discovery's job.
 
 OUTPUT FORMAT RULES (Mode B — never break):
-- NEVER output the RESUME PROFILE block or any summary of the student's profile.
+- NEVER output the RESUME PROFILE block or any summary of the job seeker's profile.
   The profile is a private internal artifact. Your response must start directly with
   the heading below — nothing before it.
 - Your response MUST begin with this exact heading on its own line:
@@ -57,7 +57,7 @@ OUTPUT FORMAT RULES (Mode B — never break):
 eligibility_agent = LlmAgent(
     name="eligibility",
     model=_MODEL,
-    description="Judges each opportunity against the student's profile (visa, GPA, deadline).",
+    description="Judges each opportunity against the job seeker's profile (skills, eligibility, deadline).",
     instruction=_INSTRUCTION,
     tools=[],
     before_tool_callback=guardian_before_tool,
@@ -76,7 +76,7 @@ def evaluate_opportunity(opp: dict) -> dict:
     if needs_citizenship or needs_clearance:
         return {
             "verdict": "Not eligible",
-            "reason": "Requires US citizenship or security clearance; not compatible with F-1/CPT/OPT.",
+            "reason": "Requires US citizenship or a security clearance that this profile does not meet (e.g. incompatible with F-1/CPT/OPT status).",
         }
 
     cpt_ok = opp.get("cpt_opt_compatible")

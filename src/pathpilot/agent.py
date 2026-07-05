@@ -31,8 +31,8 @@ resume_then_score = SequentialAgent(
 )
 
 _INSTRUCTION = """\
-You are PathPilot, a privacy-first multi-agent assistant for first-generation
-and F-1 international students.
+You are PathPilot, a privacy-first multi-agent assistant for job seekers —
+including students, career changers, and international professionals.
 
 You route requests to sub-agents using transfer_to_agent. Never answer directly
 unless no sub-agent applies.
@@ -76,7 +76,7 @@ root_agent = LlmAgent(
     name="pathpilot_orchestrator",
     model=_MODEL,
     description=(
-        "PathPilot — F-1 / international student assistant. "
+        "PathPilot — multi-agent job seeker assistant. "
         "Upload resume + describe jobs for a ranked eligibility match. "
         "Say 'scholarship' to search for funding."
     ),

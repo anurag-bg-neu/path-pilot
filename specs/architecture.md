@@ -4,7 +4,7 @@
 
 | Agent | Type | Responsibility | Tools / Skills |
 |---|---|---|---|
-| Orchestrator | root LlmAgent | Understand the student's goal, route to sub-agents via `transfer_to_agent` | delegates to sub-agents |
+| Orchestrator | root LlmAgent | Understand the job seeker's goal, route to sub-agents via `transfer_to_agent` | delegates to sub-agents |
 | resume_then_score | SequentialAgent | Hardwired pipeline: resume_parser → eligibility (deterministic; prevents LLM routing from leaking the RESUME PROFILE block to the user) | wraps two sub-agents |
 | Resume Parser | LlmAgent | Extract a PII-free RESUME PROFILE block from an uploaded PDF/DOCX/TXT | `skills/resume-parsing` |
 | Eligibility | LlmAgent | Score and rank all jobs in context against the RESUME PROFILE | `skills/eligibility-checking` |
@@ -14,12 +14,12 @@
 
 ## Data flow
 
-1. Student states a goal to the Orchestrator.
+1. The job seeker states a goal to the Orchestrator.
 2. Orchestrator → Discovery (search) → raw job/scholarship listings.
-3. Student uploads resume → Orchestrator → `resume_then_score` (SequentialAgent):
+3. The job seeker uploads a resume → Orchestrator → `resume_then_score` (SequentialAgent):
    a. Resume Parser extracts PII-free RESUME PROFILE block.
    b. Eligibility scores all jobs in context against the profile; returns ranked table.
-4. Results shown to the student (read-only; no external action taken).
+4. Results shown to the job seeker (read-only; no external action taken).
 5. On request, Orchestrator → Draft Coach (honest cover letter drafting).
 6. Any external action (send / submit) → Guardian gate → human approval → action → audit log.
 

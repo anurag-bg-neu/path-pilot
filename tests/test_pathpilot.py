@@ -15,9 +15,9 @@ scenarios("../specs/pathpilot.feature")
 # ─── Background (runs before every scenario) ───────────────────────────────────
 
 
-@given("a student profile stored only in the local vault")
-def profile_in_vault(student_profile: dict, ctx: dict) -> None:
-    ctx["profile"] = student_profile
+@given("a job seeker profile stored only in the local vault")
+def profile_in_vault(job_seeker_profile: dict, ctx: dict) -> None:
+    ctx["profile"] = job_seeker_profile
 
 
 @given(
@@ -32,7 +32,7 @@ def profile_has_visa(ctx: dict, visa: str) -> None:
 # ─── Scenario 1: Find scholarships ─────────────────────────────────────────────
 
 
-@when("the student asks to find scholarships for their field and level")
+@when("the job seeker asks to find scholarships for their field and level")
 def ask_for_scholarships(ctx: dict) -> None:
     from tools.opportunities_mcp import search_opportunities  # noqa: PLC0415
 
@@ -122,8 +122,8 @@ def open_roles_eligible(ctx: dict) -> None:
 # ─── Scenario 3: Human approval required ───────────────────────────────────────
 
 
-@given("the student has drafted an outreach message")
-def student_has_draft(ctx: dict) -> None:
+@given("the job seeker has drafted an outreach message")
+def job_seeker_has_draft(ctx: dict) -> None:
     ctx["outreach"] = "Dear Professor, I am interested in your research on ML fairness."
 
 
@@ -162,8 +162,8 @@ def nothing_sent_without_approval(ctx: dict) -> None:
 # ─── Scenario 4: No fabrication in essays ──────────────────────────────────────
 
 
-@given("the student provides only their real experience and skills")
-def student_real_facts(ctx: dict) -> None:
+@given("the job seeker provides only their real experience and skills")
+def job_seeker_real_facts(ctx: dict) -> None:
     ctx["facts"] = {
         "experience": "research assistant for 6 months",
         "skills": ["Python", "data analysis"],
@@ -246,7 +246,7 @@ def guardrails_unchanged(ctx: dict) -> None:
 # ─── Scenario 6: PII stays local ───────────────────────────────────────────────
 
 
-@when("any agent processes the student's profile")
+@when("any agent processes the job seeker's profile")
 def agent_processes_profile(ctx: dict) -> None:
     import io
     import logging

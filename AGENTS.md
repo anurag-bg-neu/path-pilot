@@ -9,9 +9,10 @@
 
 ## 1. Mission
 
-PathPilot is a privacy-first, multi-agent assistant that helps first-generation and
-international (F-1) students discover scholarships, grants, and work-authorization-eligible
-roles, check their eligibility, and draft honest applications — without leaking personal data.
+PathPilot is a privacy-first, multi-agent assistant that helps job seekers — including
+students, career changers, and international professionals — discover scholarships, grants,
+and eligible roles, check their eligibility (including work-authorization status where
+relevant), and draft honest applications — without leaking personal data.
 
 Track: "Agents for Good" (Kaggle Vibe Coding Capstone).
 

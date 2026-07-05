@@ -91,7 +91,7 @@ def search_scholarships_apify(
     Call this AT MOST ONCE per user message. Returns at most 5 scholarships.
 
     Args:
-        keyword: Search terms, e.g. "STEM international student F-1" or "computer science graduate"
+        keyword: Search terms, e.g. "computer science graduate" or "STEM international student F-1"
         education_level: One of "Undergraduate", "Graduate", "High School", "Postdoctoral".
                          Leave empty to search all levels.
         field_of_study: e.g. "Computer Science", "Engineering", "Data Science".

@@ -1,7 +1,7 @@
 ---
 name: eligibility-checking
 description: |
-  Decide whether a specific opportunity fits an international student's profile.
+  Decide whether a specific opportunity fits a job seeker's profile.
   Use this skill when the user asks whether they qualify for a scholarship, grant,
   internship, or job, or asks to filter a list of opportunities by eligibility.
   Do NOT use for drafting essays or for general career advice.
@@ -12,7 +12,7 @@ license: MIT
 
 ## When to use
 - The user asks "am I eligible for X?" for a scholarship, grant, or role.
-- A list of opportunities must be filtered against the student profile.
+- A list of opportunities must be filtered against the job seeker's profile.
 - A parsed resume profile is available — rank and match jobs to the profile.
 
 ## When NOT to use
@@ -47,42 +47,33 @@ Parser agent), switch to matching mode:
    - Partial match (related role, e.g. "Software Developer" for "SDE"): 20–39
    - Weak / unrelated title: 0–19
    IMPORTANT: base this entirely on the job title vs the user's requested role.
-   NEVER factor in the student's previous employers, company names, or industry sector.
+   NEVER factor in the job seeker's previous employers, company names, or industry sector.
 
    **b. Skills match (0–35)**
    How many skills listed in the job description appear in the RESUME PROFILE skills list?
    Score proportionally to the fraction of required skills matched.
-   NEVER subtract points because the student's prior jobs were in a different industry.
+   NEVER subtract points because the job seeker's prior jobs were in a different industry.
 
    **c. Level match (0–15)**
-   Does the job's seniority level fit the student's experience_level from the profile?
+   Does the job's seniority level fit the job seeker's experience_level from the profile?
    - Exact or adjacent match (entry→entry, mid→mid): full points
    - One step off (entry→mid): half points
    - Large mismatch (entry→senior): 0
 
 4. Total score = Role + Skills + Level (max 100).
 5. Rank ALL jobs by total score descending.
-6. Keep the **top 50** internally. Return them paginated, 10 per page.
-
-Output format (Mode B) — paginated:
-| Rank | Job Title | Company | Match Score | Skills Matched | Apply |
-|------|-----------|---------|-------------|----------------|-------|
-
-- Match Score format: "85/100"
-- Skills Matched: comma-separated list of matched skills (max 4 shown), e.g. "Python, AWS, SQL"
-- Use <a href="URL" target="_blank" rel="noopener">Apply</a> for the Apply column.
-- Rank is the absolute rank across all 50 (page 2 starts at Rank 11, etc.)
-- After each page table:
-  "Ranked by role title + skills + level match against your resume."
-  "📄 **Page P of N** — Showing ranks START–END of TOTAL"
-  "▶ Reply **next** for next page   |   ◀ Reply **prev** for previous page"
+6. Keep the **top 50** and return them ALL in a single markdown table — no pagination.
+   (Exact column layout and formatting rules are appended to this agent's instruction.)
 
 ## Anti-patterns to avoid
-- Do not assume F-1 students are ineligible by default; many roles allow CPT/OPT.
+- Do not assume a job seeker is ineligible by default based on visa or work-authorization
+  status; many roles allow CPT/OPT, sponsorship, or require no restriction at all.
 - Do not expose profile fields the task did not require.
 - Do not fabricate skill requirements not stated in the job listing.
-- NEVER penalise or deprioritise a job because the student's prior companies or industries
+- NEVER penalise or deprioritise a job because the job seeker's prior companies or industries
   differ from the hiring company's sector. Company background is irrelevant to matching.
 - NEVER use field_of_study or industry to filter out roles — only use it as a tiebreaker
   if two jobs score identically on Role + Skills + Level.
 - In Mode B, never show fewer than the available jobs if fewer than 20 were scraped.
+- Do not require visa or work-authorization fields to be present to run Mode B — score
+  citizenship/clearance restrictions only when the opportunity states them.

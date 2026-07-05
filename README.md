@@ -10,14 +10,14 @@
 
 ## What it does
 
-First-generation and F-1 international students face a unique challenge: most scholarship and job search tools ignore visa status, work-authorization rules, and the risk of fabricated applications. PathPilot solves this with a multi-agent pipeline that is honest, private, and safe by design.
+Job seekers — students, career changers, and international professionals alike — face a common challenge: most job search tools ignore individual eligibility factors (work authorization, field, experience level) and carry the risk of AI-fabricated applications. PathPilot solves this with a multi-agent pipeline that is honest, private, and safe by design for every job seeker.
 
 | Step | Agent | What happens |
 |------|-------|-------------|
 | 1 | **Discovery** | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor, ZipRecruiter, Jobright) |
 | 2 | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT) |
-| 3 | **Eligibility** | Scores and ranks job listings against the student's profile; paginated curated results |
-| 4 | **Draft Coach** | Drafts cover letters and outreach using *only* facts the student provides |
+| 3 | **Eligibility** | Scores and ranks job listings against the job seeker's profile; ranked results in a single response |
+| 4 | **Draft Coach** | Drafts cover letters and outreach using *only* facts the job seeker provides |
 | 5 | **Guardian** | Enforces all safety guardrails; pauses for human approval before any external action |
 
 ---
@@ -116,7 +116,7 @@ path-pilot/
 ## Test results
 
 ```
-tests/test_pathpilot.py::test_find_scholarships_that_match_the_students_field_and_level  PASSED
+tests/test_pathpilot.py::test_find_scholarships_that_match_the_job_seekers_field_and_level PASSED
 tests/test_pathpilot.py::test_filter_opportunities_by_workauthorization_eligibility      PASSED
 tests/test_pathpilot.py::test_require_human_approval_before_any_external_action          PASSED
 tests/test_pathpilot.py::test_refuse_to_fabricate_achievements_in_an_essay               PASSED

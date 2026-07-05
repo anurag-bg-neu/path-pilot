@@ -196,7 +196,7 @@ function TableCarousel({ msgId, data, preMd, postMd, pageMap, setPageMap }: Tabl
 }
 
 const HINTS = [
-  '🔍 Find SWE internships for F-1 students',
+  '🔍 Find SWE internships or entry-level roles',
   '⭐ Find early career SDE roles in New York',
   '📍 Find mid level SDE roles in California',
   '🎓 Find scholarships for grad students',

@@ -1,7 +1,7 @@
 [
   {
     "name": "discovery_returns_scholarships",
-    "description": "Discovery agent finds scholarships for an F-1 CS graduate student.",
+    "description": "Discovery agent finds scholarships for a Computer Science graduate student.",
     "initial_session": {
       "state": {}
     },

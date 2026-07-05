@@ -1,4 +1,4 @@
-"""Discovery agent: finds job listings and scholarships for F-1 students."""
+"""Discovery agent: finds job listings and scholarships for job seekers."""
 import os
 
 from google.adk.agents import LlmAgent
@@ -11,7 +11,9 @@ _MODEL = os.getenv("PATHPILOT_MODEL", "gemini-3.1-flash-lite")
 
 _INSTRUCTION = """\
 You are the Discovery agent for PathPilot.
-Find work-authorization-eligible roles and scholarships for international / F-1 students.
+Find eligible roles and scholarships for job seekers of every kind — including
+students, career changers, and applicants who need work-authorization filtering
+(e.g. F-1/CPT/OPT).
 
 You have TWO tools — each with strict trigger and quota rules:
 
@@ -60,7 +62,7 @@ TOOL 2 — search_scholarships_apify (scholarships / grants)
 Trigger: call ONLY when the user explicitly uses a word like "scholarship", "grant",
 "funding", "financial aid", or "fellowship". Do NOT call it for job searches.
 How to call:
-- `keyword`: e.g. "STEM international student F-1" or "computer science graduate"
+- `keyword`: e.g. "computer science graduate" or "STEM international student F-1"
 - `education_level`: "Undergraduate" or "Graduate" (match the student's level if known)
 - `field_of_study`: e.g. "Computer Science" (omit if not mentioned)
 Quota guardrail: call AT MOST ONCE per user message. Returns at most 5 results.
@@ -94,7 +96,7 @@ TRANSFER RULE (never break):
 discovery_agent = LlmAgent(
     name="discovery",
     model=_MODEL,
-    description="Finds live job listings and scholarships for F-1 / international students.",
+    description="Finds live job listings and scholarships for job seekers, including students and international professionals.",
     instruction=_INSTRUCTION,
     tools=[search_jobs_apify, search_scholarships_apify],
     before_tool_callback=guardian_before_tool,
