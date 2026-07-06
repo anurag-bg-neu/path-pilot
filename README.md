@@ -12,13 +12,13 @@
 
 Job seekers — students, career changers, and international professionals alike — face a common challenge: most job search tools ignore individual eligibility factors (work authorization, field, experience level) and carry the risk of AI-fabricated applications. PathPilot solves this with a multi-agent pipeline that is honest, private, and safe by design for every job seeker.
 
-| Step | Agent | What happens |
-|------|-------|-------------|
-| 1 | **Discovery** | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor, ZipRecruiter, Jobright) |
-| 2 | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT) |
-| 3 | **Eligibility** | Scores and ranks job listings against the job seeker's profile; ranked results in a single response |
-| 4 | **Draft Coach** | Drafts cover letters and outreach using *only* facts the job seeker provides |
-| 5 | **Guardian** | Enforces all safety guardrails; pauses for human approval before any external action |
+| Step | Agent             | What happens                                                                                                                         |
+|------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| 1    | **Discovery**     | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor, ZipRecruiter, Jobright) |
+| 2    | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT)                                                            |
+| 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile; ranked results in a single response                                  |
+| 4    | **Draft Coach**   | Drafts cover letters and outreach using *only* facts the job seeker provides                                                         |
+| 5    | **Guardian**      | Enforces all safety guardrails; pauses for human approval before any external action                                                 |
 
 ---
 
@@ -51,38 +51,32 @@ In a second terminal:
 cd ui && npm install && npm run dev   # frontend — :3000
 ```
 
-> **Note:** unlike a `make install && make playground` style project, PathPilot has no Makefile — the two processes (ADK backend, Vite frontend) are started separately, as shown above.
+> **Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above.
 
 ---
 
 ## Solution Architecture
 
-Routing between agents is **LLM-decided** (the orchestrator calls `transfer_to_agent`), not a fixed conditional graph edge — except `resume_then_score`, which is a hardwired `SequentialAgent` specifically so that handoff *can't* be LLM-rerouted. Guardrails are **callbacks attached to agents** (`before_tool_callback` / `after_tool_callback` / `after_model_callback`), not a separate upfront checkpoint node.
+Routing between agents is **LLM-decided** (the orchestrator calls `transfer_to_agent`), not a fixed conditional graph edge — except `resume_then_score`, which is a hardwired `SequentialAgent` specifically so that handoff *can't* be LLM-rerouted. Guardrails are **callbacks attached to agents** (`before_tool_callback` / `after_tool_callback` / `after_model_callback` — `guardian.py` and `plugins.py`), not a separate upfront checkpoint node; `guardian.py` wraps tool calls on the orchestrator, `discovery`, and `draft_coach`, and `AuditLogPlugin` observes every agent turn.
 
 ```mermaid
 graph TD
-    START["User Input"] --> Orch["pathpilot_orchestrator (LlmAgent)"]
+    UserInput["User Input"] --> Orch["pathpilot_orchestrator - LlmAgent"]
 
-    Orch -->|"LLM decides via transfer_to_agent"| ResumeScore["resume_then_score (SequentialAgent, hardwired)"]
-    Orch -->|"LLM decides via transfer_to_agent"| Discovery["discovery (LlmAgent)"]
-    Orch -->|"LLM decides via transfer_to_agent"| DraftCoach["draft_coach (LlmAgent)"]
+    Orch -->|transfer_to_agent| ResumeScore["resume_then_score - SequentialAgent"]
+    Orch -->|transfer_to_agent| Discovery["discovery - LlmAgent"]
+    Orch -->|transfer_to_agent| DraftCoach["draft_coach - LlmAgent"]
 
-    ResumeScore --> ResumeParser["resume_parser (zero tools)"]
-    ResumeParser -->|"PII-free RESUME PROFILE, never shown to user"| Eligibility["eligibility (zero tools; any tool call is hard-blocked by guardian)"]
+    ResumeScore --> ResumeParser["resume_parser - zero tools"]
+    ResumeParser --> Eligibility["eligibility - zero tools, tool calls blocked"]
     Eligibility --> Result["Ranked eligibility table"]
 
-    Discovery -->|"search_jobs_apify / search_scholarships_apify"| Apify["Apify actors: LinkedIn, Indeed, Glassdoor, ZipRecruiter, Jobright + Scholarship actor"]
-    Apify -->|"guardian_after_tool redacts injection phrases"| Discovery
-    Discovery --> Result2["Job / scholarship listings"]
+    Discovery --> Apify["Apify job and scholarship actors"]
+    Apify --> Discovery
+    Discovery --> Result2["Job and scholarship listings"]
 
-    DraftCoach -->|"fabrication_guard (after_model_callback): logs, does not block"| DraftCoach
-    DraftCoach -->|"request_send_approval (LongRunningFunctionTool)"| HITL["Human approval — runner pauses"]
-    HITL -->|"approved / denied"| Final["Final response to user"]
-
-    Guardian[["guardian.py callbacks: PII block, injection screen, eligibility tool lock"]] -.->|"wraps tool calls on"| Orch
-    Guardian -.-> Discovery
-    Guardian -.-> DraftCoach
-    Audit[["AuditLogPlugin — structured JSON log"]] -.->|"observes every turn"| Orch
+    DraftCoach --> HITL["Human approval - runner pauses"]
+    HITL --> Final["Final response to user"]
 ```
 
 ---
@@ -97,14 +91,14 @@ graph TD
 
 ## Security guardrails (Day 4 — Agents for Good)
 
-| Guardrail | Implementation |
-|-----------|---------------|
-| Human-in-the-loop | Guardian gate pauses the runner; nothing is sent without explicit approval |
-| No fabrication | Draft Coach's instruction layer refuses to invent awards, titles, or metrics; a code-level callback audits every response |
-| PII stays local | Resume content parsed locally into a PII-free profile; raw text never forwarded |
-| Prompt-injection defense | Fetched web content is screened and redacted before the LLM sees it |
-| Audit log | `AuditLogPlugin` emits structured JSON for every agent turn and tool call |
-| Free-tier only | Gemini Flash via AI Studio free tier — no billing required |
+| Guardrail                | Implementation                                                                                                            |
+|--------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| Human-in-the-loop        | Guardian gate pauses the runner; nothing is sent without explicit approval                                                |
+| No fabrication           | Draft Coach's instruction layer refuses to invent awards, titles, or metrics; a code-level callback audits every response |
+| PII stays local          | Resume content parsed locally into a PII-free profile; raw text never forwarded                                           |
+| Prompt-injection defense | Fetched web content is screened and redacted before the LLM sees it                                                       |
+| Audit log                | `AuditLogPlugin` emits structured JSON for every agent turn and tool call                                                 |
+| Free-tier only           | Gemini Flash via AI Studio free tier — no billing required                                                                |
 
 ---
 
@@ -199,12 +193,12 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 
 ## Concept → file map (for judges)
 
-| Course concept | Implementation | Key file(s) |
-|----------------|---------------|-------------|
-| Multi-agent system (ADK) | Orchestrator + `resume_then_score` SequentialAgent + 4 sub-agents | `src/pathpilot/agent.py` |
-| MCP server | FastMCP server (standalone) + Discovery's own seed fallback when `APIFY_TOKEN` absent | `tools/opportunities_mcp.py`, `src/pathpilot/apify_scholarship_scraper.py` |
-| Agent skills | `eligibility-checking`, `resume-parsing`, `draft-coaching` SKILL.md cards | `skills/` |
-| Security | Guardian callbacks (HITL, PII, injection, eligibility lock) + AuditLogPlugin | `src/pathpilot/guardian.py`, `src/pathpilot/plugins.py` |
+| Course concept           | Implementation                                                                        | Key file(s)                                                                |
+|--------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| Multi-agent system (ADK) | Orchestrator + `resume_then_score` SequentialAgent + 4 sub-agents                     | `src/pathpilot/agent.py`                                                   |
+| MCP server               | FastMCP server (standalone) + Discovery's own seed fallback when `APIFY_TOKEN` absent | `tools/opportunities_mcp.py`, `src/pathpilot/apify_scholarship_scraper.py` |
+| Agent skills             | `eligibility-checking`, `resume-parsing`, `draft-coaching` SKILL.md cards             | `skills/`                                                                  |
+| Security                 | Guardian callbacks (HITL, PII, injection, eligibility lock) + AuditLogPlugin          | `src/pathpilot/guardian.py`, `src/pathpilot/plugins.py`                    |
 
 ---
 
@@ -219,11 +213,11 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 
 ## Environment variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GOOGLE_API_KEY` | Yes | Gemini API key from [AI Studio](https://aistudio.google.com) (free tier) |
-| `PATHPILOT_MODEL` | No | Override the Gemini model (default: `gemini-3.1-flash-lite`) |
-| `APIFY_TOKEN` | No | Apify API token for live job scraping — [get one free at apify.com](https://apify.com) |
+| Variable          | Required | Description                                                                            |
+|-------------------|----------|----------------------------------------------------------------------------------------|
+| `GOOGLE_API_KEY`  | Yes      | Gemini API key from [AI Studio](https://aistudio.google.com) (free tier)               |
+| `PATHPILOT_MODEL` | No       | Override the Gemini model (default: `gemini-3.1-flash-lite`)                           |
+| `APIFY_TOKEN`     | No       | Apify API token for live job scraping — [get one free at apify.com](https://apify.com) |
 
 ---
 
