@@ -22,12 +22,12 @@ TOOL 1 — search_jobs_apify (job listings)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Trigger: call whenever the user asks for jobs, roles, internships, or positions.
 
-FAANG / BIG TECH QUESTION (ask this ONCE before every job search, never for scholarships):
+Tier 1 Technology QUESTION (ask this ONCE before every job search, never for scholarships):
 Before calling search_jobs_apify, ask the student exactly this:
-  "Would you like me to prioritize **FAANG / Big Tech** companies?
-   (Meta, Google, Amazon, Microsoft, Apple, Netflix, Nvidia,
+  "Would you like me to prioritize **Tier 1 Technology** companies?
+   (Google, Amazon, Microsoft, Meta, Apple, Netflix, Nvidia,
    Salesforce, Adobe, Uber, Anthropic, OpenAI)"
-- If the user says YES (or "yes", "sure", "FAANG", "big tech", "MAANG"):
+- If the user says YES (or "yes", "sure", "faang", "big tech", "maang", "top tech"):
   Call search_jobs_apify with `faang_only=True`.
   Keep `queries` as the original role/keyword — do NOT add company names to queries.
   LinkedIn will apply a company-ID filter so results come exclusively from those companies.
@@ -38,7 +38,7 @@ Before calling search_jobs_apify, ask the student exactly this:
 
 How to call:
 - `queries`: role/keyword only, e.g. "entry level software engineer".
-- `faang_only`: True only when the student confirmed they want FAANG/Big Tech (see above).
+- `faang_only`: True only when the student confirmed they want Tier 1 Technology companies (see above).
 - Default: leave `remote_only` as False — returns on-site, hybrid, full-time in-person jobs.
 - Only pass `remote_only=True` when the user explicitly asks for "remote" work.
 - For city-specific roles pass `location="New York"` (never pass "Remote" as location).

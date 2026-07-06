@@ -38,11 +38,11 @@ function loadHistory(): SavedSession[] {
 type QuickReplySet = { options: { label: string; value: string }[] } | null
 
 function detectQuickReplies(text: string): QuickReplySet {
-  if (/would you like me to prioritize.*faang/i.test(text)) {
+  if (/would you like me to prioritize.*(faang|tier 1)/i.test(text)) {
     return {
       options: [
-        { label: '✅ Yes, Tier 1 tech companies only', value: 'yes' },
-        { label: '🌐 No, show all companies',          value: 'no'  },
+        { label: '✅ Yes, Tier 1 companies', value: 'yes' },
+        { label: '🌐 No, show all companies', value: 'no'  },
       ],
     }
   }
@@ -105,11 +105,11 @@ const SEARCH_MSGS = [
 ]
 
 const THINK_MSGS = [
-  { icon: '🧠', text: 'Thinking…'             },
-  { icon: '✍️', text: 'Composing response…'   },
-  { icon: '🔎', text: 'Reviewing results…'    },
-  { icon: '📝', text: 'Drafting answer…'      },
-  { icon: '⚡', text: 'Almost ready…'         },
+  { icon: '🧠', text: 'Thinking…'            },
+  { icon: '✍️', text: 'Composing response…'  },
+  { icon: '🔎', text: 'Reviewing results…'   },
+  { icon: '📝', text: 'Drafting answer…'     },
+  { icon: '⚡', text: 'Almost ready…'        },
 ]
 
 function TypingIndicator({ lastUserMsg }: { lastUserMsg: string }) {
