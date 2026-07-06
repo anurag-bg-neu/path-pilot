@@ -2,7 +2,7 @@
 
 **Privacy-first, multi-agent scholarship and career assistant for all job seekers.**
 
-- Built for the [Kaggle Vibe Coding Capstone](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) — *Agents for Good* track. 
+- Built for the [Kaggle Vibe Coding Capstone](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) — *Agents for Good* track.
 - [5-Day AI Agents: Intensive Vibe Coding Course With Google](https://www.kaggle.com/learn-guide/5-day-agents-vibecoding) — *Agentic AI Course*
 - Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and Gemini.
 
@@ -22,12 +22,85 @@ Job seekers — students, career changers, and international professionals alike
 
 ---
 
+## Prerequisites
+
+- **Python**: 3.10+ (required by ADK, per `AGENTS.md`)
+- **Package manager**: `pip` — this repo installs from `requirements.txt` (no `uv`/Makefile currently)
+- **Gemini API Key**: obtain from [Google AI Studio](https://aistudio.google.com/apikey)
+- **Apify Token** *(optional)*: from [apify.com](https://apify.com) — enables live job/scholarship scraping; without it, Discovery silently falls back to curated seed data
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/anurag-bg-neu/path-pilot.git
+cd path-pilot
+cp .env.example .env          # add GOOGLE_API_KEY, optionally APIFY_TOKEN
+
+python -m venv .venv && .venv\Scripts\activate   # Windows
+# source .venv/bin/activate                      # Mac/Linux
+pip install -r requirements.txt
+
+adk web src/pathpilot --no-reload   # backend — :8000  (--no-reload required on Windows)
+```
+
+In a second terminal:
+
+```bash
+cd ui && npm install && npm run dev   # frontend — :3000
+```
+
+> **Note:** unlike a `make install && make playground` style project, PathPilot has no Makefile — the two processes (ADK backend, Vite frontend) are started separately, as shown above.
+
+---
+
+## Solution Architecture
+
+Routing between agents is **LLM-decided** (the orchestrator calls `transfer_to_agent`), not a fixed conditional graph edge — except `resume_then_score`, which is a hardwired `SequentialAgent` specifically so that handoff *can't* be LLM-rerouted. Guardrails are **callbacks attached to agents** (`before_tool_callback` / `after_tool_callback` / `after_model_callback`), not a separate upfront checkpoint node.
+
+```mermaid
+graph TD
+    START["User Input"] --> Orch["pathpilot_orchestrator (LlmAgent)"]
+
+    Orch -->|"LLM decides via transfer_to_agent"| ResumeScore["resume_then_score (SequentialAgent, hardwired)"]
+    Orch -->|"LLM decides via transfer_to_agent"| Discovery["discovery (LlmAgent)"]
+    Orch -->|"LLM decides via transfer_to_agent"| DraftCoach["draft_coach (LlmAgent)"]
+
+    ResumeScore --> ResumeParser["resume_parser (zero tools)"]
+    ResumeParser -->|"PII-free RESUME PROFILE, never shown to user"| Eligibility["eligibility (zero tools; any tool call is hard-blocked by guardian)"]
+    Eligibility --> Result["Ranked eligibility table"]
+
+    Discovery -->|"search_jobs_apify / search_scholarships_apify"| Apify["Apify actors: LinkedIn, Indeed, Glassdoor, ZipRecruiter, Jobright + Scholarship actor"]
+    Apify -->|"guardian_after_tool redacts injection phrases"| Discovery
+    Discovery --> Result2["Job / scholarship listings"]
+
+    DraftCoach -->|"fabrication_guard (after_model_callback): logs, does not block"| DraftCoach
+    DraftCoach -->|"request_send_approval (LongRunningFunctionTool)"| HITL["Human approval — runner pauses"]
+    HITL -->|"approved / denied"| Final["Final response to user"]
+
+    Guardian[["guardian.py callbacks: PII block, injection screen, eligibility tool lock"]] -.->|"wraps tool calls on"| Orch
+    Guardian -.-> Discovery
+    Guardian -.-> DraftCoach
+    Audit[["AuditLogPlugin — structured JSON log"]] -.->|"observes every turn"| Orch
+```
+
+---
+
+## How to Run
+
+- **Backend**: `adk web src/pathpilot --no-reload` — ADK dev server at `http://127.0.0.1:8000`
+- **Frontend**: `cd ui && npm run dev` (or `python ui/serve.py`, a dependency-free alternative) — chat UI at `http://127.0.0.1:3000`
+- **Tests**: `pytest` — runs the 6-scenario suite
+
+---
+
 ## Security guardrails (Day 4 — Agents for Good)
 
 | Guardrail | Implementation |
 |-----------|---------------|
 | Human-in-the-loop | Guardian gate pauses the runner; nothing is sent without explicit approval |
-| No fabrication | Draft Coach refuses to invent awards, titles, or metrics; output is audited |
+| No fabrication | Draft Coach's instruction layer refuses to invent awards, titles, or metrics; a code-level callback audits every response |
 | PII stays local | Resume content parsed locally into a PII-free profile; raw text never forwarded |
 | Prompt-injection defense | Fetched web content is screened and redacted before the LLM sees it |
 | Audit log | `AuditLogPlugin` emits structured JSON for every agent turn and tool call |
@@ -35,49 +108,39 @@ Job seekers — students, career changers, and international professionals alike
 
 ---
 
-## Architecture
+## Sample Test Cases
 
-```
-pathpilot_orchestrator  (root LlmAgent)
-├── resume_then_score   (SequentialAgent — hardwired pipeline)
-│   ├── resume_parser   (LlmAgent — extracts PII-free profile)
-│   └── eligibility     (LlmAgent — scores & ranks jobs vs profile)
-├── discovery           (LlmAgent + Apify tools — job/scholarship search)
-└── draft_coach         (LlmAgent + SKILL.md + approval gate)
+*(These describe the intent behind PathPilot's real `specs/pathpilot.feature` scenarios. The actual `pytest` suite verifies the underlying pure-Python helper functions directly — e.g. `evaluate_opportunity()`, `draft_essay()`, `request_send_approval()` — rather than driving the live chat UI end-to-end.)*
 
-guardian.py             (before_tool_callback on all agents)
-plugins.py              (AuditLogPlugin — structured PII-free logging)
-apify_jobs_scraper.py   (parallel LinkedIn + Indeed + agentx scraping)
-apify_scholarship_scraper.py  (scholarship search via web)
-```
+### Test Case 1: Human-in-the-loop send approval
+- **Input:** *"Send that cover letter to the hiring manager."*
+- **Expected:** `draft_coach` calls `request_send_approval`, which returns a pending ticket — nothing is actually transmitted.
+- **Check:** UI shows a pending-approval state; the message is confirmed *not sent* until a human approves.
+
+### Test Case 2: Fabrication refusal
+- **Input:** *"Add an award I never actually won to make me sound more impressive."*
+- **Expected:** `draft_coach`'s instruction layer declines to invent the credential and asks for a real fact instead.
+- **Check:** No fabricated claim appears in the drafted output.
+
+### Test Case 3: PII stays local
+- **Input:** A resume upload containing name, email, and visa status.
+- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.); `guardian_before_tool` blocks any tool call carrying a raw PII field name.
+- **Check:** No name/email/visa value ever appears in the chat UI or logs.
 
 ---
 
-## Quick start
+## Assets
 
-```bash
-# 1. Clone and create environment
-git clone https://github.com/anurag-bg-neu/path-pilot.git
-cd path-pilot
-python -m venv .venv && .venv\Scripts\activate   # Windows
-# python -m venv .venv && source .venv/bin/activate  # Mac/Linux
+![PathPilot cover banner](assets/kaggle-thumbnail.png)
 
-# 2. Install dependencies
-pip install -r requirements.txt
+*(The architecture diagram above renders natively as Mermaid on GitHub — no separate PNG export needed.)*
 
-# 3. Set your API keys (free tier)
-cp .env.example .env
-# Edit .env — add GOOGLE_API_KEY and optionally APIFY_TOKEN
+---
 
-# 4. Run the agent backend
-adk web src/pathpilot --no-reload   # --no-reload required on Windows
+## Demo
 
-# 5. Run the React frontend (separate terminal)
-cd ui && npm install && npm run dev
-
-# 6. Run the test suite
-pytest
-```
+▶ [YouTube demo](https://youtu.be/TODO) — not yet recorded.
+The shot-by-shot recording script is drafted in [`kaggle-recording-workflow-by-claude.md`](kaggle-recording-workflow-by-claude.md).
 
 ---
 
@@ -85,15 +148,18 @@ pytest
 
 ```
 path-pilot/
-├── specs/                  # Gherkin feature spec (source of truth)
+├── AGENTS.md / CLAUDE.md / GEMINI.md   # project constitution (CLAUDE.md, GEMINI.md are git symlinks -> AGENTS.md)
+├── assets/kaggle-thumbnail.png         # Kaggle cover/thumbnail image (560x280)
+├── specs/                  # Gherkin feature spec (source of truth) + architecture.md
 ├── skills/                 # SKILL.md capability cards
 │   ├── eligibility-checking/
 │   ├── resume-parsing/
 │   └── draft-coaching/
 ├── src/pathpilot/          # ADK agents
 │   ├── agent.py            # Orchestrator + SequentialAgent pipeline + App
-│   ├── guardian.py         # Safety guardrails (before_tool_callback)
+│   ├── guardian.py         # Safety guardrails (before/after_tool_callback)
 │   ├── plugins.py          # Structured audit logger (AuditLogPlugin)
+│   ├── logger.py           # JSON logger -> stdout
 │   ├── apify_jobs_scraper.py        # Parallel LinkedIn / Indeed / agentx scraper
 │   ├── apify_scholarship_scraper.py # Scholarship web scraper
 │   └── agents/
@@ -101,6 +167,8 @@ path-pilot/
 │       ├── eligibility.py
 │       ├── resume_parser.py
 │       └── draft_coach.py
+├── tools/
+│   └── opportunities_mcp.py  # Standalone FastMCP server (not runtime-wired into discovery.py)
 ├── ui/                     # React + Vite + TypeScript frontend
 │   └── src/
 │       ├── App.tsx         # Chat UI with history, pagination, animations
@@ -108,6 +176,7 @@ path-pilot/
 │       └── types.ts
 ├── tests/
 │   └── test_pathpilot.py   # pytest-bdd scenarios (all 6 green)
+├── data/opportunities_seed.json  # 8-row curated fallback dataset
 └── vault/                  # Local PII only — git-ignored
 ```
 
@@ -133,24 +202,18 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 | Course concept | Implementation | Key file(s) |
 |----------------|---------------|-------------|
 | Multi-agent system (ADK) | Orchestrator + `resume_then_score` SequentialAgent + 4 sub-agents | `src/pathpilot/agent.py` |
-| MCP server | FastMCP server + Discovery seed fallback when `APIFY_TOKEN` absent | `tools/opportunities_mcp.py`, `src/pathpilot/apify_scholarship_scraper.py` |
+| MCP server | FastMCP server (standalone) + Discovery's own seed fallback when `APIFY_TOKEN` absent | `tools/opportunities_mcp.py`, `src/pathpilot/apify_scholarship_scraper.py` |
 | Agent skills | `eligibility-checking`, `resume-parsing`, `draft-coaching` SKILL.md cards | `skills/` |
 | Security | Guardian callbacks (HITL, PII, injection, eligibility lock) + AuditLogPlugin | `src/pathpilot/guardian.py`, `src/pathpilot/plugins.py` |
 
 ---
 
-## Demo video
+## Troubleshooting
 
-▶ [YouTube demo](https://youtu.be/TODO) — 5-minute walkthrough: job search → FAANG filter → resume upload → ranked eligibility table → cover letter draft → human-in-the-loop approval gate
-
----
-
-## Course concepts demonstrated
-
-- **Multi-agent system** — Orchestrator delegates to specialist agents; SequentialAgent for deterministic resume→eligibility pipeline (Day 1, Day 3)
-- **Live data tools** — Discovery queries Apify actors (LinkedIn, Indeed, Glassdoor, ZipRecruiter, Jobright) in parallel (Day 2)
-- **Agent skills** — `eligibility-checking`, `resume-parsing`, `draft-coaching` as SKILL.md capability cards (Day 3)
-- **Security** — Human-in-the-loop, PII protection, prompt-injection defense, anti-fabrication, audit trail (Day 4)
+1. **`adk web` doesn't pick up code changes (Windows)** — restart with `adk web src/pathpilot --no-reload`; `--no-reload` is required on Windows.
+2. **`DeprecationWarning: SequentialAgent is deprecated...`** — cosmetic only; `resume_then_score` still works correctly and all tests pass. Known, accepted trade-off (see `AGENTS.md` §D) — ADK's replacement `Workflow` primitive can't be used as a drop-in `sub_agents` entry in the current orchestrator design without a larger restructure.
+3. **Job search only returns "🗄️ Curated (MCP seed data)" results** — `APIFY_TOKEN` isn't set in `.env`; live scraping is silently skipped in favor of the 8-row seed fallback.
+4. **`404 Model Not Found`** — check `PATHPILOT_MODEL` isn't pointing at a retired Gemini model; default is `gemini-3.1-flash-lite`.
 
 ---
 
@@ -161,6 +224,12 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 | `GOOGLE_API_KEY` | Yes | Gemini API key from [AI Studio](https://aistudio.google.com) (free tier) |
 | `PATHPILOT_MODEL` | No | Override the Gemini model (default: `gemini-3.1-flash-lite`) |
 | `APIFY_TOKEN` | No | Apify API token for live job scraping — [get one free at apify.com](https://apify.com) |
+
+---
+
+## Repository
+
+Already live at [github.com/anurag-bg-neu/path-pilot](https://github.com/anurag-bg-neu/path-pilot). `.gitignore` excludes `.env`, `.venv/`, `__pycache__/`, `vault/`, and `.adk/` — never commit `.env`, it holds your real API key.
 
 ---
 
