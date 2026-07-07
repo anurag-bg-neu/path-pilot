@@ -24,7 +24,7 @@ Job seekers: Students, Career Changers, & International Professionals alike face
 ## Prerequisites
 
 - **Python** : 3.10+ required by ADK backend framework.
-- **Package manager** : `pip` installations from `requirements.txt` ( no `uv` / Makefile currently ).
+- **Package manager** : `pip` installations from `requirements.txt`.
 - **Gemini API Key** ( _available on [Google AI Studio](https://aistudio.google.com/apikey)_ ) : required for LLM interactions.
 - **Apify Token** ( _available on [Apify](https://apify.com)_ ) : required for live job/scholarship scraping. Without it, Discovery-agent silently falls back to seed data.
 
