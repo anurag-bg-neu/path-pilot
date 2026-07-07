@@ -32,14 +32,17 @@ def _seed_jobs_fallback(keyword: str) -> list[dict[str, Any]]:
             opps = json.load(fh)["opportunities"]
     except Exception:
         return []
-    kw = keyword.lower()
+    # Word-overlap match, not whole-phrase substring: a multi-word keyword like
+    # "computer science graduate student" will never appear verbatim in a seed
+    # title/field, so require only that at least one significant word overlaps.
+    kw_words = [w for w in keyword.lower().split() if len(w) > 2]
     results = []
     for opp in opps:
         if opp.get("type", "").lower() not in _JOB_TYPES:
             continue
         title = opp.get("title", "").lower()
         field = opp.get("field", "").lower()
-        if kw and kw not in title and kw not in field:
+        if kw_words and not any(w in title or w in field for w in kw_words):
             continue
         amt = opp.get("amount_usd")
         results.append({
@@ -289,7 +292,9 @@ def search_jobs_apify(
     Returns:
         List of up to 115 job dicts: name, company, location, salary,
         source_url, closing_date, source.
-        Returns empty list when APIFY_TOKEN env var is not set.
+        Falls back to the MCP seed dataset (each row tagged company="Curated
+        (MCP seed data)") when APIFY_TOKEN is not set, actor startup fails,
+        or the live scrape returns zero results.
     """
     token = os.getenv("APIFY_TOKEN", "")
     if not token:
@@ -344,7 +349,8 @@ def search_jobs_apify(
     })
 
     if not linkedin_started or not indeed_started or not secondary_started:
-        return []
+        log.info("Apify job actors failed to start — returning MCP seed fallback for jobs.")
+        return _seed_jobs_fallback(queries)
 
     loc_fallback = location or ("Remote" if remote_only else "")
 
@@ -369,4 +375,8 @@ def search_jobs_apify(
             key = f"{job.get('name','').lower().strip()}|{job.get('company','').lower().strip()}"
             seen.setdefault(key, job)
 
-    return list(seen.values())[:_MAX_RETURN]
+    live_results = list(seen.values())[:_MAX_RETURN]
+    if not live_results:
+        log.info("Live job scrape returned zero results — returning MCP seed fallback for jobs.")
+        return _seed_jobs_fallback(queries)
+    return live_results

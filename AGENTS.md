@@ -109,6 +109,9 @@ data, model, application/runtime, IAM, observability, governance — applied pra
     │       └── types.ts
     ├── tests/
     │   └── test_pathpilot.py             # pytest-bdd (all 6 scenarios green)
+    ├── evals/                            # adk eval suite — LLM-driven behavior, not covered by pytest
+    │   ├── pathpilot_eval.test.json      # 4 eval cases (ADK native eval format)
+    │   └── eval_config.json              # tool-trajectory (IN_ORDER) + final_response_match_v2 (LLM judge)
     └── vault/                            # Local PII only — git-ignored, never committed
 
 ---
@@ -133,8 +136,11 @@ cd ui && npm install && npm run dev
 # Type-check frontend
 cd ui && npx tsc --noEmit
 
-# Run test suite
+# Run test suite (deterministic code paths)
 pytest
+
+# Run agent evals (real Gemini calls — LLM-driven routing/behavior, not covered by pytest)
+adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/eval_config.json
 ```
 
 ---
@@ -247,7 +253,7 @@ search_opportunities(
 
 | Condition                                 | Automatic recovery                                                          | Manual action                                                      |
 |-------------------------------------------|-----------------------------------------------------------------------------|--------------------------------------------------------------------|
-| `APIFY_TOKEN` absent                      | Both scrapers return MCP seed data, labelled "🗄️ Curated (MCP seed data)"  | Add token to `.env` for live results                               |
+| `APIFY_TOKEN` absent, or live scrape returns zero results | Both scrapers return MCP seed data, labelled "🗄️ Curated (MCP seed data)"  | Add/verify token in `.env`; broaden the search query for live results |
 | `eligibility` called before resume parsed | Agent outputs a clear error message and halts (no crash)                    | Upload a resume first, then ask for eligibility scoring            |
 | Guardian blocks a tool call               | Returns graceful "blocked by guardian" message; run continues               | Check `logs/audit.jsonl` for the `guardian_block` record           |
 | LLM API error                             | ADK built-in retry (3 attempts), then surfaces error banner in the React UI | Verify `GOOGLE_API_KEY` is valid and free-tier quota not exhausted |

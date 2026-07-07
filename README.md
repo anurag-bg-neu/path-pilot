@@ -58,6 +58,12 @@ Run the test suite:
 pytest                                         # 6/6 passing
 ```
 
+Run the agent evals (real Gemini calls — see [Evals](#evals) below):
+
+```bash
+adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/eval_config.json
+```
+
 > _**Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above._
 
 ---
@@ -131,6 +137,30 @@ graph TD
 
 ---
 
+## Evals
+
+`pytest` covers deterministic code paths (guardrail logic, callbacks, pure functions). It cannot tell you whether the *LLM-driven* behavior — routing, tool calls, refusal wording — actually holds up, since that's non-deterministic and drifts silently when a prompt or model changes. `evals/pathpilot_eval.test.json` covers that gap using ADK's native eval format (`adk eval`), driving the real `pathpilot_orchestrator` end-to-end against 4 scenarios:
+
+| Eval case | What it checks |
+|---|---|
+| `discovery_returns_scholarships` | Orchestrator routes to Discovery, which searches (or honestly reports no results / falls back) |
+| `orchestrator_explains_citizenship_conflict_no_job_context` | With no job/resume in context, the orchestrator itself correctly reasons about an F-1 visa vs. a citizenship/clearance requirement |
+| `guardian_blocks_direct_send` | Draft Coach never sends outreach directly - it either asks clarifying questions first, or drafts and calls `request_send_approval`, pausing for human approval |
+| `essay_coach_refuses_fabrication` | Draft Coach declines to invent unverified achievements |
+
+Each case is scored on two metrics (`evals/eval_config.json`):
+- `tool_trajectory_avg_score` (`IN_ORDER` match) - did the required agent hops actually happen, functionally exact.
+- `final_response_match_v2` - an LLM-judge metric (not literal text overlap), since these are free-form prose responses where exact wording is expected to vary run-to-run.
+
+Run it:
+```bash
+adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/eval_config.json --print_detailed_results
+```
+
+> _**Note:** this makes real Gemini calls and is subject to free-tier rate limits (15 req/min). `--print_detailed_results` shows the actual prompt/response/tool-calls per case, not just pass/fail — read it when a case fails, since the LLM judge can occasionally misjudge a correct response (sampling noise at `num_samples: 1`, forced down from the recommended 3+ by the free tier)._
+
+---
+
 <!--
 ## Demo
 
@@ -169,6 +199,9 @@ path-pilot/
 │       └── types.ts
 ├── tests/
 │   └── test_pathpilot.py             # pytest-bdd scenarios (all 6 green)
+├── evals/                            # adk eval suite (LLM-driven behavior, see Evals section)
+│   ├── pathpilot_eval.test.json      # 4 eval cases
+│   └── eval_config.json              # tool-trajectory + LLM-judge criteria
 ├── data/opportunities_seed.json      # 8-row curated fallback dataset
 └── vault/                            # Local PII only — git-ignored
 ```
@@ -190,7 +223,7 @@ path-pilot/
 
 1. **`adk web` doesn't pick up code changes (Windows)** - restart with `adk web src/pathpilot --no-reload`; `--no-reload` is required on Windows.
 2. **`DeprecationWarning: SequentialAgent is deprecated...`** - cosmetic only; `resume_then_score` still works correctly and all tests pass.
-3. **Job search only returns "Curated (MCP seed data)" results** - `APIFY_TOKEN` isn't set in `.env`; live scraping is silently skipped in favor of the mock-seed fallback.
+3. **Job/scholarship search only returns "Curated (MCP seed data)" results** - either `APIFY_TOKEN` isn't set in `.env` (live scraping is skipped entirely), or the live actor call started but returned zero results (e.g. an unavailable actor, a very narrow query, or a transient Apify failure) - both cases fall back to the local seed dataset automatically so the user never sees an empty response.
 4. **`404 Model Not Found`** - check `PATHPILOT_MODEL` isn't pointing at a retired Gemini model; default is `gemini-3.1-flash-lite`.
 
 ---

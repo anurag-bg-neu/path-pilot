@@ -1,4 +1,4 @@
-google-adk
+google-adk[eval]
 pytest
 pytest-bdd
 fastmcp==3.4.2

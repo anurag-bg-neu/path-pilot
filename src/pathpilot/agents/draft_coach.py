@@ -25,8 +25,11 @@ _INSTRUCTION = (
     + """
 SENDING RULE (guardrail 1, HUMAN-IN-THE-LOOP):
 - NEVER send or transmit any message directly.
-- When the student asks to send an outreach message, call request_send_approval with
-  the recipient and message text. This pauses for explicit human approval.
+- When the student asks to send an outreach message, call the function named exactly
+  `request_send_approval` — call it bare, with no agent-name prefix and no namespace
+  (NOT `draft_coach.request_send_approval`, NOT `functions.request_send_approval`).
+  It is the only sending-related tool available to you. Pass the recipient and message
+  text as its arguments. This pauses for explicit human approval.
 - Do not proceed until the human has confirmed approval in this session.
 - After approval, tell the student: "Your approval has been recorded. The message has
   NOT been sent yet — a human operator must action the approved request." Never say
@@ -50,6 +53,21 @@ _FABRICATION_TRIGGERS: tuple[str, ...] = (
     "invent",
     "make up",
 )
+
+# The only bare tool names this agent can actually dispatch. Gemini occasionally
+# hallucinates an agent-qualified variant (e.g. "draft_coach.request_send_approval")
+# instead of the bare registered name, which ADK's tool lookup does not understand
+# and raises a hard ValueError for — crashing the run. Prompt wording alone cannot
+# guarantee this never happens, so we also sanitize it in code (guardrail 1).
+_KNOWN_TOOL_NAMES: frozenset[str] = frozenset({"request_send_approval"})
+
+
+def _degrade_qualified_tool_name(name: str) -> str:
+    """Strip any agent/namespace prefix from a hallucinated qualified tool name."""
+    if name in _KNOWN_TOOL_NAMES:
+        return name
+    bare = name.rsplit(".", 1)[-1]
+    return bare if bare in _KNOWN_TOOL_NAMES else name
 
 
 # ── pure-Python drafting function (used directly in tests) ───────────────────
@@ -99,7 +117,8 @@ def fabrication_guard(
     callback_context: CallbackContext,
     llm_response: LlmResponse,
 ) -> Optional[LlmResponse]:
-    """Audit log when model output contains fabrication markers (guardrail 2).
+    """Audit log when model output contains fabrication markers (guardrail 2),
+    and sanitize any hallucinated agent-qualified tool-call name (guardrail 1).
 
     Hard-blocking by word match causes false positives when the student has
     explicitly confirmed a fact mid-conversation (e.g. "yes I really won the
@@ -110,10 +129,21 @@ def fabrication_guard(
     text = ""
     try:
         if llm_response.content and llm_response.content.parts:
-            text = " ".join(
-                p.text for p in llm_response.content.parts
-                if hasattr(p, "text") and p.text
-            )
+            for part in llm_response.content.parts:
+                if hasattr(part, "text") and part.text:
+                    text += part.text + " "
+
+                function_call = getattr(part, "function_call", None)
+                if function_call is not None and function_call.name:
+                    corrected = _degrade_qualified_tool_name(function_call.name)
+                    if corrected != function_call.name:
+                        slog(
+                            "warning",
+                            event="tool_name_hallucination_corrected",
+                            original=function_call.name,
+                            corrected=corrected,
+                        )
+                        function_call.name = corrected
     except Exception:
         pass
 

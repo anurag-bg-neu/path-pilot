@@ -45,7 +45,10 @@ def _seed_scholarships_fallback(
             opps = json.load(fh)["opportunities"]
     except Exception:
         return []
-    kw = keyword.lower()
+    # Word-overlap match, not whole-phrase substring: a multi-word keyword like
+    # "computer science graduate student" will never appear verbatim in a seed
+    # title/field, so require only that at least one significant word overlaps.
+    kw_words = [w for w in keyword.lower().split() if len(w) > 2]
     level_q = education_level.lower() if education_level else ""
     field_q = field_of_study.lower() if field_of_study else ""
     results = []
@@ -55,7 +58,7 @@ def _seed_scholarships_fallback(
         title = opp.get("title", "").lower()
         field = opp.get("field", "").lower()
         level = opp.get("level", "").lower()
-        if kw and kw not in title and kw not in field:
+        if kw_words and not any(w in title or w in field for w in kw_words):
             continue
         if level_q and level not in ("any", "") and level_q not in level:
             continue
@@ -84,7 +87,8 @@ def search_scholarships_apify(
 ) -> list[dict[str, Any]]:
     """Search live scholarships from Scholarships.com, Fastweb, and College Board via Apify.
 
-    Falls back to the MCP seed dataset when APIFY_TOKEN is not set.
+    Falls back to the MCP seed dataset when APIFY_TOKEN is not set, actor startup
+    fails, or the live scrape returns zero results.
 
     IMPORTANT — only call this tool when the user explicitly asks for scholarships,
     grants, or financial aid. Do NOT call it for job searches.
@@ -124,10 +128,12 @@ def search_scholarships_apify(
     # background log-streaming thread which times out on Windows (impit.TimeoutException).
     started = client.actor(_ACTOR_ID).start(run_input=run_input)
     if not started:
-        return []
+        log.info("Apify scholarship actor failed to start — returning MCP seed fallback.")
+        return _seed_scholarships_fallback(keyword, education_level, field_of_study)
     run = client.run(started.id).wait_for_finish()
     if not run or not run.default_dataset_id:
-        return []
+        log.info("Apify scholarship run produced no dataset — returning MCP seed fallback.")
+        return _seed_scholarships_fallback(keyword, education_level, field_of_study)
 
     results: list[dict[str, Any]] = []
     for item in client.dataset(run.default_dataset_id).iterate_items():
@@ -150,4 +156,7 @@ def search_scholarships_apify(
             "apply_url": _extract(item, "url", "applyUrl", "link", "scholarshipUrl"),
         })
 
+    if not results:
+        log.info("Live scholarship scrape returned zero results — returning MCP seed fallback.")
+        return _seed_scholarships_fallback(keyword, education_level, field_of_study)
     return results
