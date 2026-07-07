@@ -26,7 +26,7 @@ def _safe_arg_keys(tool_args: dict[str, Any]) -> list[str]:
 class AuditLogPlugin(BasePlugin):
     """Emit a structured JSON audit-log entry at every significant lifecycle point.
 
-    Covers (CLAUDE.md §2 guardrail 7 — OBSERVABILITY):
+    Covers (AGENTS.md §2 guardrail 7 — OBSERVABILITY):
     - Invocation start/end
     - Agent turn start/end
     - Tool call start/end  (arg *names* only — never values)

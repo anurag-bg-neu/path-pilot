@@ -1,6 +1,6 @@
 # PathPilot
 
-![PathPilot cover banner](assets/kaggle-thumbnail.png)
+<img src="assets/kaggle-thumbnail.png" alt="PathPilot cover banner" width="100%">
 
 **Privacy-first, multi-agent scholarship and career assistant for all job seekers.**
 
@@ -135,7 +135,6 @@ graph TD
 ## Demo
 
 ▶ [YouTube demo](https://youtu.be/TODO) — not yet recorded.
-The shot-by-shot recording script is drafted in [`kaggle-recording-workflow-by-claude.md`](kaggle-recording-workflow-by-claude.md).
 
 ---
 
@@ -143,7 +142,7 @@ The shot-by-shot recording script is drafted in [`kaggle-recording-workflow-by-c
 
 ```text
 path-pilot/
-├── AGENTS.md / CLAUDE.md / GEMINI.md   # project constitution (CLAUDE.md, GEMINI.md are git symlinks -> AGENTS.md)
+├── AGENTS.md                           # project constitution — single source of truth
 ├── assets/kaggle-thumbnail.png         # Kaggle cover/thumbnail image (560x280)
 ├── specs/                  # Gherkin feature spec (source of truth) + architecture.md
 ├── skills/                 # SKILL.md capability cards

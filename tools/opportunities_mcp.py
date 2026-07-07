@@ -71,7 +71,7 @@ def search_opportunities(field: str, level: str, keyword: str = "") -> list[dict
 
         # Keyword search is restricted to title only.
         # The description field is excluded from results and from search because it is
-        # untrusted external content and may contain prompt-injection text (see CLAUDE.md §2).
+        # untrusted external content and may contain prompt-injection text (see AGENTS.md §2).
         if kw_q and kw_q not in opp["title"].lower():
             continue
 

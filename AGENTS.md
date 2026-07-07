@@ -78,7 +78,6 @@ data, model, application/runtime, IAM, observability, governance — applied pra
 
     path-pilot/
     ├── AGENTS.md                         # this file — single source of truth
-    ├── CLAUDE.md                         # Claude Code redirect → AGENTS.md
     ├── requirements.txt                  # pinned deps only
     ├── .env.example                      # names of required env vars (no values)
     ├── specs/                            # SOURCE OF TRUTH (Gherkin + architecture)

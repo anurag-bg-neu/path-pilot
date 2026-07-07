@@ -1,4 +1,4 @@
-"""Guardian: pre/post-tool hooks enforcing all safety guardrails (CLAUDE.md §2)."""
+"""Guardian: pre/post-tool hooks enforcing all safety guardrails (AGENTS.md §2)."""
 import json
 import re
 from typing import Any, Optional
