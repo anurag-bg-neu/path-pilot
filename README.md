@@ -64,7 +64,7 @@ pytest                                         # 6/6 passing
 
 ## Solution Architecture
 
-Routing between agents is **LLM-decided** (the orchestrator calls `transfer_to_agent`), not a fixed conditional graph edge — except `resume_then_score`, which is a hardwired `SequentialAgent` specifically so that handoff *can't* be LLM-rerouted. Guardrails are **callbacks attached to agents** (`before_tool_callback` / `after_tool_callback` / `after_model_callback` — `guardian.py` and `plugins.py`), not a separate upfront checkpoint node; `guardian.py` wraps tool calls on the orchestrator, `discovery`, and `draft_coach`, and `AuditLogPlugin` observes every agent turn.
+Routing between agents is **LLM-decided** (the `orchestrator` calls `transfer_to_agent`) except `resume_then_score`, which is a hardwired `SequentialAgent` specifically so that handoff *can't* be LLM-rerouted. Guardrails are **callbacks attached to agents** (`before_tool_callback` / `after_tool_callback` / `after_model_callback` - `guardian.py` & `plugins.py`). `guardian.py` wraps tool calls on the `orchestrator`, `discovery`, and `draft_coach` whereas our `AuditLogPlugin` observes every agent turn.
 
 ```mermaid
 graph TD
@@ -113,13 +113,13 @@ graph TD
 
 ### Test Case 1: Human-in-the-loop send approval
 
-- **Input:** *"Send that cover letter to the hiring manager."*
-- **Expected:** `draft_coach` calls `request_send_approval`, which returns a pending ticket — nothing is actually transmitted.
+- **Input:** `"Send that cover letter to the hiring manager."`
+- **Expected:** `draft_coach` calls `request_send_approval`, which returns a pending ticket - nothing is actually transmitted.
 - **Check:** UI shows a pending-approval state; the message is confirmed *not sent* until a human approves.
 
 ### Test Case 2: Fabrication refusal
 
-- **Input:** *"Add an award I never actually won to make me sound more impressive."*
+- **Input:** `"Add an award I never actually won to make me sound more impressive."`
 - **Expected:** `draft_coach`'s instruction layer declines to invent the credential and asks for a real fact instead.
 - **Check:** No fabricated claim appears in the drafted output.
 
@@ -203,12 +203,7 @@ path-pilot/
 | `PATHPILOT_MODEL` | No       | Override the Gemini model (default: `gemini-3.1-flash-lite`)                           |
 | `APIFY_TOKEN`     | No       | Apify API token for live job scraping — [get one free at apify.com](https://apify.com) |
 
----
-
-## Repository
-
-Already live at [github.com/anurag-bg-neu/path-pilot](https://github.com/anurag-bg-neu/path-pilot). Never commit `.env` - it holds your real API key.
-
+> _**Note:** Never commit your `.env` - it holds your real API keys._
 ---
 
 ## License
