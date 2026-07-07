@@ -35,28 +35,30 @@ Job seekers — students, career changers, and international professionals alike
 
 ## Quick Start
 
+In the first  terminal:
+
 ```bash
 git clone https://github.com/anurag-bg-neu/path-pilot.git
 cd path-pilot
-cp .env.example .env          # add GOOGLE_API_KEY, optionally APIFY_TOKEN
+cp .env.example .env                            # add GOOGLE_API_KEY & APIFY_TOKEN
 
-python -m venv .venv && .venv\Scripts\activate   # Windows
-# source .venv/bin/activate                      # Mac/Linux
+python -m venv .venv && .venv\Scripts\activate  # Windows
+# source .venv/bin/activate                     # Mac/Linux
 pip install -r requirements.txt
 
-adk web src/pathpilot --no-reload   # backend — :8000  (--no-reload required on Windows)
+adk web src/pathpilot --no-reload               # backend — :8000  (--no-reload required on Windows)
 ```
 
 In a second terminal:
 
 ```bash
-cd ui && npm install && npm run dev   # frontend — :3000
+cd ui && npm install && npm run dev             # frontend — :3000
 ```
 
 Run the test suite:
 
 ```bash
-pytest   # 6/6 passing
+pytest                                          # 6/6 passing
 ```
 
 > **Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above.
@@ -134,7 +136,7 @@ graph TD
 
 ## Demo
 
-▶ [YouTube demo](https://youtu.be/cAFQcutAnm8)
+▶ [YouTube link](https://youtu.be/cAFQcutAnm8)
 
 ---
 
@@ -144,34 +146,34 @@ graph TD
 path-pilot/
 ├── AGENTS.md                           # project constitution — single source of truth
 ├── assets/kaggle-thumbnail.png         # Kaggle cover/thumbnail image (560x280)
-├── specs/                  # Gherkin feature spec (source of truth) + architecture.md
-├── skills/                 # SKILL.md capability cards
+├── specs/                              # Gherkin feature spec (source of truth) + architecture.md
+├── skills/                             # SKILL.md capability cards
 │   ├── eligibility-checking/
 │   ├── resume-parsing/
 │   └── draft-coaching/
-├── src/pathpilot/          # ADK agents
-│   ├── agent.py            # Orchestrator + SequentialAgent pipeline + App
-│   ├── guardian.py         # Safety guardrails (before/after_tool_callback)
-│   ├── plugins.py          # Structured audit logger (AuditLogPlugin)
-│   ├── logger.py           # JSON logger -> stdout
-│   ├── apify_jobs_scraper.py        # Parallel LinkedIn / Indeed / agentx scraper
-│   ├── apify_scholarship_scraper.py # Scholarship web scraper
+├── src/pathpilot/                      # ADK agents
+│   ├── agent.py                        # Orchestrator + SequentialAgent pipeline + App
+│   ├── guardian.py                     # Safety guardrails (before/after_tool_callback)
+│   ├── plugins.py                      # Structured audit logger (AuditLogPlugin)
+│   ├── logger.py                       # JSON logger -> stdout
+│   ├── apify_jobs_scraper.py           # Parallel LinkedIn / Indeed / agentx scraper
+│   ├── apify_scholarship_scraper.py    # Scholarship web scraper
 │   └── agents/
 │       ├── discovery.py
 │       ├── eligibility.py
 │       ├── resume_parser.py
 │       └── draft_coach.py
 ├── tools/
-│   └── opportunities_mcp.py  # Standalone FastMCP server (not runtime-wired into discovery.py)
-├── ui/                     # React + Vite + TypeScript frontend
+│   └── opportunities_mcp.py            # Standalone FastMCP server (not runtime-wired into discovery.py)
+├── ui/                                 # React + Vite + TypeScript frontend
 │   └── src/
-│       ├── App.tsx         # Chat UI with history, pagination, animations
-│       ├── api.ts          # ADK SSE streaming client
+│       ├── App.tsx                     # Chat UI with history, pagination, animations
+│       ├── api.ts                      # ADK SSE streaming client
 │       └── types.ts
 ├── tests/
-│   └── test_pathpilot.py   # pytest-bdd scenarios (all 6 green)
-├── data/opportunities_seed.json  # 8-row curated fallback dataset
-└── vault/                  # Local PII only — git-ignored
+│   └── test_pathpilot.py               # pytest-bdd scenarios (all 6 green)
+├── data/opportunities_seed.json        # 8-row curated fallback dataset
+└── vault/                              # Local PII only — git-ignored
 ```
 
 ---
