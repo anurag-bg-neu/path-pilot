@@ -1,5 +1,7 @@
 # PathPilot
 
+![PathPilot cover banner](assets/kaggle-thumbnail.png)
+
 **Privacy-first, multi-agent scholarship and career assistant for all job seekers.**
 
 - Built for the [Kaggle Vibe Coding Capstone](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) — *Agents for Good* track.
@@ -49,6 +51,12 @@ In a second terminal:
 
 ```bash
 cd ui && npm install && npm run dev   # frontend — :3000
+```
+
+Run the test suite:
+
+```bash
+pytest   # 6/6 passing
 ```
 
 > **Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above.
@@ -104,30 +112,23 @@ graph TD
 
 ## Sample Test Cases
 
-*(These describe the intent behind PathPilot's real `specs/pathpilot.feature` scenarios. The actual `pytest` suite verifies the underlying pure-Python helper functions directly — e.g. `evaluate_opportunity()`, `draft_essay()`, `request_send_approval()` — rather than driving the live chat UI end-to-end.)*
-
 ### Test Case 1: Human-in-the-loop send approval
+
 - **Input:** *"Send that cover letter to the hiring manager."*
 - **Expected:** `draft_coach` calls `request_send_approval`, which returns a pending ticket — nothing is actually transmitted.
 - **Check:** UI shows a pending-approval state; the message is confirmed *not sent* until a human approves.
 
 ### Test Case 2: Fabrication refusal
+
 - **Input:** *"Add an award I never actually won to make me sound more impressive."*
 - **Expected:** `draft_coach`'s instruction layer declines to invent the credential and asks for a real fact instead.
 - **Check:** No fabricated claim appears in the drafted output.
 
 ### Test Case 3: PII stays local
+
 - **Input:** A resume upload containing name, email, and visa status.
 - **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.); `guardian_before_tool` blocks any tool call carrying a raw PII field name.
 - **Check:** No name/email/visa value ever appears in the chat UI or logs.
-
----
-
-## Assets
-
-![PathPilot cover banner](assets/kaggle-thumbnail.png)
-
-*(The architecture diagram above renders natively as Mermaid on GitHub — no separate PNG export needed.)*
 
 ---
 
@@ -140,7 +141,7 @@ The shot-by-shot recording script is drafted in [`kaggle-recording-workflow-by-c
 
 ## Project layout
 
-```
+```text
 path-pilot/
 ├── AGENTS.md / CLAUDE.md / GEMINI.md   # project constitution (CLAUDE.md, GEMINI.md are git symlinks -> AGENTS.md)
 ├── assets/kaggle-thumbnail.png         # Kaggle cover/thumbnail image (560x280)
@@ -176,21 +177,6 @@ path-pilot/
 
 ---
 
-## Test results
-
-```
-tests/test_pathpilot.py::test_find_scholarships_that_match_the_job_seekers_field_and_level PASSED
-tests/test_pathpilot.py::test_filter_opportunities_by_workauthorization_eligibility      PASSED
-tests/test_pathpilot.py::test_require_human_approval_before_any_external_action          PASSED
-tests/test_pathpilot.py::test_refuse_to_fabricate_achievements_in_an_essay               PASSED
-tests/test_pathpilot.py::test_treat_fetched_web_content_as_untrusted_data                PASSED
-tests/test_pathpilot.py::test_keep_personal_data_local                                   PASSED
-
-6 passed in 6s
-```
-
----
-
 ## Concept → file map (for judges)
 
 | Course concept           | Implementation                                                                        | Key file(s)                                                                |
@@ -205,7 +191,7 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 ## Troubleshooting
 
 1. **`adk web` doesn't pick up code changes (Windows)** — restart with `adk web src/pathpilot --no-reload`; `--no-reload` is required on Windows.
-2. **`DeprecationWarning: SequentialAgent is deprecated...`** — cosmetic only; `resume_then_score` still works correctly and all tests pass. Known, accepted trade-off (see `AGENTS.md` §D) — ADK's replacement `Workflow` primitive can't be used as a drop-in `sub_agents` entry in the current orchestrator design without a larger restructure.
+2. **`DeprecationWarning: SequentialAgent is deprecated...`** — cosmetic only; `resume_then_score` still works correctly and all tests pass.
 3. **Job search only returns "🗄️ Curated (MCP seed data)" results** — `APIFY_TOKEN` isn't set in `.env`; live scraping is silently skipped in favor of the 8-row seed fallback.
 4. **`404 Model Not Found`** — check `PATHPILOT_MODEL` isn't pointing at a retired Gemini model; default is `gemini-3.1-flash-lite`.
 
@@ -223,7 +209,7 @@ tests/test_pathpilot.py::test_keep_personal_data_local                          
 
 ## Repository
 
-Already live at [github.com/anurag-bg-neu/path-pilot](https://github.com/anurag-bg-neu/path-pilot). `.gitignore` excludes `.env`, `.venv/`, `__pycache__/`, `vault/`, and `.adk/` — never commit `.env`, it holds your real API key.
+Already live at [github.com/anurag-bg-neu/path-pilot](https://github.com/anurag-bg-neu/path-pilot). Never commit `.env` — it holds your real API key.
 
 ---
 
