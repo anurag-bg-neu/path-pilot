@@ -134,7 +134,7 @@ graph TD
 
 ## Demo
 
-▶ [YouTube demo](https://youtu.be/TODO) — not yet recorded.
+▶ [YouTube demo](https://youtu.be/cAFQcutAnm8)
 
 ---
 
