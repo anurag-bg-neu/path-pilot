@@ -9,11 +9,11 @@
 
 ## What it does
 
-Job seekers — students, career changers, and international professionals alike — face a common challenge: most job search tools ignore individual eligibility factors (work authorization, field, experience level) and carry the risk of AI-fabricated applications. PathPilot solves this with a multi-agent pipeline that is honest, private, and safe by design for every job seeker.
+Job seekers: Students, Career Changers, & International Professionals alike face a common challenge. Most job search tools ignore individual eligibility factors (work authorization, field, experience level) and carry the risk of AI-fabricated applications. PathPilot solves this with a multi-agent pipeline that is honest, private, and safe by design for every job seeker.
 
 | Step | Agent             | What happens                                                                                                                         |
 |------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| 1    | **Discovery**     | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor, ZipRecruiter, Jobright) |
+| 1    | **Discovery**     | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor)                         |
 | 2    | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT)                                                            |
 | 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile; ranked results in a single response                                  |
 | 4    | **Draft Coach**   | Drafts cover letters and outreach using *only* facts the job seeker provides                                                         |
@@ -23,10 +23,10 @@ Job seekers — students, career changers, and international professionals alike
 
 ## Prerequisites
 
-- **Python**: 3.10+ (required by ADK, per `AGENTS.md`)
-- **Package manager**: `pip` — this repo installs from `requirements.txt` (no `uv`/Makefile currently)
-- **Gemini API Key**: obtain from [Google AI Studio](https://aistudio.google.com/apikey)
-- **Apify Token** *(optional)*: from [apify.com](https://apify.com) — enables live job/scholarship scraping; without it, Discovery silently falls back to curated seed data
+- **Python** : 3.10+ required by ADK backend framework.
+- **Package manager** : `pip` installations from `requirements.txt` ( no `uv` / Makefile currently ).
+- **Gemini API Key** ( _available on [Google AI Studio](https://aistudio.google.com/apikey)_ ) : required for LLM interactions.
+- **Apify Token** ( _available on [Apify](https://apify.com)_ ) : required for live job/scholarship scraping. Without it, Discovery-agent silently falls back to seed data.
 
 ---
 
@@ -58,7 +58,7 @@ Run the test suite:
 pytest                                         # 6/6 passing
 ```
 
-> **Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above.
+> _**Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above._
 
 ---
 
@@ -90,9 +90,9 @@ graph TD
 
 ## How to Run
 
-- **Backend**: `adk web src/pathpilot --no-reload` - ADK dev server at `http://127.0.0.1:8000`
-- **Frontend**: `cd ui && npm run dev` (or `python ui/serve.py`, a dependency-free alternative) - chat UI at `http://127.0.0.1:3000`
-- **Tests**: `pytest` - runs the 6-scenario suite
+- **Backend**: `adk web src/pathpilot --no-reload` - ADK dev server at `http://127.0.0.1:8000`.
+- **Frontend**: `cd ui && npm run dev` (or `python ui/serve.py`, a dependency-free alternative) - chat UI at `http://127.0.0.1:3000`.
+- **Tests**: `pytest` - runs the 6-scenario suite.
 
 ---
 
