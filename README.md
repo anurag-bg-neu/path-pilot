@@ -58,7 +58,7 @@ Run the test suite:
 pytest                                         # 6/6 passing
 ```
 
-Run the agent evals (real Gemini calls — see [Evals](#evals) below):
+Run the agent evals (real LLM calls, check [Evals](#evals)):
 
 ```bash
 adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/eval_config.json
@@ -139,7 +139,7 @@ graph TD
 
 ## Evals
 
-`pytest` covers deterministic code paths (guardrail logic, callbacks, pure functions). It cannot tell you whether the *LLM-driven* behavior — routing, tool calls, refusal wording — actually holds up, since that's non-deterministic and drifts silently when a prompt or model changes. `evals/pathpilot_eval.test.json` covers that gap using ADK's native eval format (`adk eval`), driving the real `pathpilot_orchestrator` end-to-end against 4 scenarios:
+`pytest` covers deterministic code paths (guardrail logic, callbacks, pure functions). It cannot tell you whether the *LLM-driven* behavior like routing, tool calls, refusal wording actually holds up, since that's non-deterministic and drifts silently when a prompt or model changes. `evals/pathpilot_eval.test.json` covers that gap using ADK's native eval format (`adk eval`), driving the real `pathpilot_orchestrator` end-to-end against selected 4 scenarios:
 
 | Eval case | What it checks |
 |---|---|
@@ -157,7 +157,7 @@ Run it:
 adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/eval_config.json --print_detailed_results
 ```
 
-> _**Note:** this makes real Gemini calls and is subject to free-tier rate limits (15 req/min). `--print_detailed_results` shows the actual prompt/response/tool-calls per case, not just pass/fail — read it when a case fails, since the LLM judge can occasionally misjudge a correct response (sampling noise at `num_samples: 1`, forced down from the recommended 3+ by the free tier)._
+> _**Note:** this makes real Gemini calls and is subject to free-tier rate limits (15 req/min). `--print_detailed_results` shows the actual prompt/response/tool-calls per case, read it when a case fails, since the LLM judge can occasionally misjudge a correct response (sampling noise at `num_samples: 1`, forced down from the recommended 3+ by the free tier)._
 
 ---
 
