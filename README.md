@@ -6,7 +6,7 @@
 
 - [5-Day AI Agents Vibe Coding with Kaggle & Google Capstone](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) — *Agents for Good* track.
 - [5-Day AI Agents Vibe Coding Course With Kaggle & Google](https://www.kaggle.com/learn-guide/5-day-agents-vibecoding) — *Agentic AI Course*
-- Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and Gemini.
+- Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and [Google AI Studio's Gemini API](https://aistudio.google.com/).
 
 ---
 
