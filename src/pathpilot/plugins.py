@@ -11,7 +11,7 @@ from google.adk.tools.base_tool import BaseTool
 
 from .logger import slog
 
-# PII field names — never log values of these keys, even from tool args (guardrail 3)
+# PII field names; never log values of these keys, even from tool args (guardrail 3)
 _PII_FIELDS: frozenset[str] = frozenset({
     "name", "email", "phone", "address", "ssn",
     "passport_number", "visa_number", "transcript", "dob",
@@ -26,10 +26,10 @@ def _safe_arg_keys(tool_args: dict[str, Any]) -> list[str]:
 class AuditLogPlugin(BasePlugin):
     """Emit a structured JSON audit-log entry at every significant lifecycle point.
 
-    Covers (AGENTS.md §2 guardrail 7 — OBSERVABILITY):
+    Covers (AGENTS.md §2 guardrail 7, OBSERVABILITY):
     - Invocation start/end
     - Agent turn start/end
-    - Tool call start/end  (arg *names* only — never values)
+    - Tool call start/end  (arg *names* only, never values)
     - Model error
     - Tool error
     """

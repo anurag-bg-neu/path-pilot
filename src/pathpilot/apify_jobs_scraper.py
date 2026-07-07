@@ -1,8 +1,8 @@
-"""Apify jobs scraper — three dedicated actor runs in parallel.
+"""Apify jobs scraper: three dedicated actor runs in parallel.
 
-  1. LinkedIn  — curious_coder/linkedin-jobs-scraper   → 10 results
-  2. Indeed    — kaix/indeed-scraper                   → up to 100 results
-  3. Others    — agentx/all-jobs-scraper
+  1. LinkedIn  : curious_coder/linkedin-jobs-scraper   → 10 results
+  2. Indeed    : kaix/indeed-scraper                   → up to 100 results
+  3. Others    : agentx/all-jobs-scraper
                  (Glassdoor, ZipRecruiter, Jobright)    →  5 results
 
 Note: Y Combinator (jobs.ycombinator.com) is not a supported platform in
@@ -23,7 +23,7 @@ _JOB_TYPES = {"internship", "role", "job"}
 def _seed_jobs_fallback(keyword: str) -> list[dict[str, Any]]:
     """Return job/internship/role entries from the MCP seed dataset.
 
-    Called when APIFY_TOKEN is not set — returns the same data the MCP server
+    Called when APIFY_TOKEN is not set; returns the same data the MCP server
     (tools/opportunities_mcp.py) exposes, labelled so the user knows it is curated
     fallback data and not live-scraped results.
     """
@@ -49,7 +49,7 @@ def _seed_jobs_fallback(keyword: str) -> list[dict[str, Any]]:
             "name": opp.get("title", ""),
             "company": "🗄️ Curated (MCP seed data)",
             "location": "Various",
-            "salary": f"USD {amt:,}/yr" if amt else "—",
+            "salary": f"USD {amt:,}/yr" if amt else "-",
             "source_url": opp.get("source_url", ""),
             "closing_date": opp.get("deadline", ""),
             "source": "seed",
@@ -70,10 +70,10 @@ _SECONDARY_COUNT = 10  # results we return
 
 _MAX_RETURN = _LINKEDIN_COUNT + _INDEED_COUNT + _SECONDARY_COUNT  # 120
 
-# FAANG keyword suffix — appended to queries for LinkedIn, Indeed, and agentx when faang_only=True.
+# FAANG keyword suffix, appended to queries for LinkedIn, Indeed, and agentx when faang_only=True.
 # Parentheses are required: without them, Indeed treats each company as an independent OR branch
 # and ignores the role keywords entirely, collapsing 100 results → 2.
-# MUST be wrapped in parentheses — without them Indeed mis-parses the OR operators
+# MUST be wrapped in parentheses; without them Indeed mis-parses the OR operators
 # and returns near-zero results (matches each company name independently of the role).
 _FAANG_KW_SUFFIX = (
     "(Google OR Amazon OR Microsoft OR Meta OR Apple OR Netflix OR Nvidia "
@@ -82,7 +82,7 @@ _FAANG_KW_SUFFIX = (
 
 log = logging.getLogger(__name__)
 
-# Abbreviations that job boards don't recognise — expand them so actor queries match real postings.
+# Abbreviations that job boards don't recognise; expand them so actor queries match real postings.
 _ABBREV = [
     (r'\bSDE\b',  'Software Development Engineer'),
     (r'\bSWE\b',  'Software Engineer'),
@@ -102,7 +102,7 @@ def _expand(keyword: str) -> str:
 
 def _linkedin_url(keyword: str, location: str, remote_only: bool, faang_only: bool = False) -> str:
     # For FAANG mode, append company names to the keyword instead of using f_C= company-ID
-    # filter. f_C= requires a fresh proxy IP per run — after the first run in a session
+    # filter. f_C= requires a fresh proxy IP per run; after the first run in a session
     # LinkedIn blocks the actor's proxy pool and returns 0. Keyword-based FAANG matching
     # is less precise but survives proxy reuse.
     kw = f"{keyword} {_FAANG_KW_SUFFIX}" if faang_only else keyword
@@ -298,14 +298,14 @@ def search_jobs_apify(
     """
     token = os.getenv("APIFY_TOKEN", "")
     if not token:
-        log.info("APIFY_TOKEN not set — returning MCP seed fallback for jobs.")
+        log.info("APIFY_TOKEN not set; returning MCP seed fallback for jobs.")
         return _seed_jobs_fallback(_expand(queries))
 
     # Expand abbreviations so all actors receive natural-language keywords that
     # match their search indexes (e.g. "SDE" → "Software Development Engineer").
     queries = _expand(queries)
 
-    from apify_client import ApifyClient  # lazy import — only needed at call time
+    from apify_client import ApifyClient  # lazy import, only needed at call time
 
     client = ApifyClient(token)
 
@@ -349,19 +349,19 @@ def search_jobs_apify(
     })
 
     if not linkedin_started or not indeed_started or not secondary_started:
-        log.info("Apify job actors failed to start — returning MCP seed fallback for jobs.")
+        log.info("Apify job actors failed to start; returning MCP seed fallback for jobs.")
         return _seed_jobs_fallback(queries)
 
     loc_fallback = location or ("Remote" if remote_only else "")
 
-    # Collect — each wait_for_finish() blocks until that run completes.
+    # Collect: each wait_for_finish() blocks until that run completes.
     linkedin_jobs  = _collect_linkedin(client, linkedin_started.id, _LINKEDIN_COUNT)
     indeed_jobs    = _collect_indeed(client, indeed_started.id, _INDEED_COUNT)
     secondary_jobs = _collect_agentx(client, secondary_started.id, _SECONDARY_COUNT, loc_fallback)
 
     raw = linkedin_jobs + indeed_jobs + secondary_jobs
 
-    # Deduplicate by source URL — each URL is a unique posting.
+    # Deduplicate by source URL: each URL is a unique posting.
     # Do NOT dedup by (title, company): FAANG companies post many roles with the
     # same generic title (e.g. "Software Engineer") for different teams; collapsing
     # them by title+company reduces 15+ real openings to 1–2.
@@ -371,12 +371,12 @@ def search_jobs_apify(
         if url:
             seen.setdefault(url, job)
         else:
-            # No URL — use title+company as fallback key to avoid true duplicates
+            # No URL: use title+company as fallback key to avoid true duplicates
             key = f"{job.get('name','').lower().strip()}|{job.get('company','').lower().strip()}"
             seen.setdefault(key, job)
 
     live_results = list(seen.values())[:_MAX_RETURN]
     if not live_results:
-        log.info("Live job scrape returned zero results — returning MCP seed fallback for jobs.")
+        log.info("Live job scrape returned zero results; returning MCP seed fallback for jobs.")
         return _seed_jobs_fallback(queries)
     return live_results

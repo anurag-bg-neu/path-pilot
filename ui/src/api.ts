@@ -55,7 +55,7 @@ export async function* streamAgent(
         try {
           yield JSON.parse(json) as AdkSseEvent
         } catch {
-          // malformed JSON — skip
+          // malformed JSON, skip
         }
       }
     }

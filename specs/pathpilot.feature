@@ -3,7 +3,7 @@
 # Run these later with a Python BDD runner (pytest-bdd).
 
 Feature: Discover and qualify opportunities for a job seeker
-  As a job seeker — including students, career changers, and applicants with
+  As a job seeker, including students, career changers, and applicants with
   work-authorization restrictions
   I want an assistant that finds relevant scholarships and eligible roles
   So that I can apply to the ones I am actually eligible for, honestly and privately.

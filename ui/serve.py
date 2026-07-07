@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PathPilot UI server — serves the custom frontend and proxies ADK API calls.
+"""PathPilot UI server: serves the custom frontend and proxies ADK API calls.
 
 Usage:
   1. Start the ADK backend:   adk web src/pathpilot
@@ -91,7 +91,7 @@ class Handler(BaseHTTPRequestHandler):
             self._cors_headers()
             self.end_headers()
 
-            # Stream chunks — critical for SSE to forward events as they arrive
+            # Stream chunks: critical for SSE to forward events as they arrive
             while True:
                 chunk = resp.read(4096)
                 if not chunk:

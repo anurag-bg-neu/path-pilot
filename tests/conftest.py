@@ -10,7 +10,7 @@ def ctx() -> dict:
 
 @pytest.fixture
 def job_seeker_profile() -> dict:
-    """Minimal job seeker profile stored in the vault — no real PII here."""
+    """Minimal job seeker profile stored in the vault, no real PII here."""
     return {
         "visa": "F-1",
         "gpa": 3.5,

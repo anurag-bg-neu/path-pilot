@@ -26,23 +26,23 @@ _INSTRUCTION = (
 SENDING RULE (guardrail 1, HUMAN-IN-THE-LOOP):
 - NEVER send or transmit any message directly.
 - When the student asks to send an outreach message, call the function named exactly
-  `request_send_approval` — call it bare, with no agent-name prefix and no namespace
+  `request_send_approval`; call it bare, with no agent-name prefix and no namespace
   (NOT `draft_coach.request_send_approval`, NOT `functions.request_send_approval`).
   It is the only sending-related tool available to you. Pass the recipient and message
   text as its arguments. This pauses for explicit human approval.
 - Do not proceed until the human has confirmed approval in this session.
 - After approval, tell the student: "Your approval has been recorded. The message has
-  NOT been sent yet — a human operator must action the approved request." Never say
+  NOT been sent yet; a human operator must action the approved request." Never say
   the message was sent or submitted for sending.
 """
 )
 
-# Markers that signal fabricated content — must never appear unless the student stated them.
+# Markers that signal fabricated content; must never appear unless the student stated them.
 _FABRICATION_MARKERS: frozenset[str] = frozenset(
     {"award", "prize", "medal", "ceo", "co-founded", "co-founder", "patent"}
 )
 
-# Request phrases that hint the user wants embellishment — we refuse and ask for real facts.
+# Request phrases that hint the user wants embellishment; we refuse and ask for real facts.
 _FABRICATION_TRIGGERS: tuple[str, ...] = (
     "more impressive",
     "sound impressive",
@@ -57,7 +57,7 @@ _FABRICATION_TRIGGERS: tuple[str, ...] = (
 # The only bare tool names this agent can actually dispatch. Gemini occasionally
 # hallucinates an agent-qualified variant (e.g. "draft_coach.request_send_approval")
 # instead of the bare registered name, which ADK's tool lookup does not understand
-# and raises a hard ValueError for — crashing the run. Prompt wording alone cannot
+# and raises a hard ValueError for, crashing the run. Prompt wording alone cannot
 # guarantee this never happens, so we also sanitize it in code (guardrail 1).
 _KNOWN_TOOL_NAMES: frozenset[str] = frozenset({"request_send_approval"})
 
@@ -92,7 +92,7 @@ def draft_essay(facts: dict, request: str = "") -> dict:
     draft = ". ".join(sentences) + ("." if sentences else "")
     if not draft.strip():
         draft = (
-            "I would be happy to help — please share your experiences and skills "
+            "I would be happy to help; please share your experiences and skills "
             "so I can draft your essay without inventing any content."
         )
 
@@ -105,7 +105,7 @@ def draft_essay(facts: dict, request: str = "") -> dict:
         changes.append(
             "Embellishment request noted but not fulfilled (guardrail 2: NO FABRICATION). "
             "To strengthen the draft, please share specific achievements, metrics, or "
-            "project outcomes — nothing will be invented."
+            "project outcomes; nothing will be invented."
         )
 
     return {"draft": draft, "changes": changes}

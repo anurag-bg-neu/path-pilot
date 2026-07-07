@@ -1,4 +1,4 @@
-"""Apify scholarship scraper tool — live scholarships via majestic_fund/the-scholarship-scraper-actor.
+"""Apify scholarship scraper tool: live scholarships via majestic_fund/the-scholarship-scraper-actor.
 
 Falls back to the MCP seed dataset (data/opportunities_seed.json) when APIFY_TOKEN is not set,
 returning the same scholarship/grant rows the FastMCP server (tools/opportunities_mcp.py) exposes.
@@ -14,7 +14,7 @@ _SEED_PATH = pathlib.Path(__file__).parent.parent.parent / "data" / "opportuniti
 _SCHOLARSHIP_TYPES = {"scholarship", "grant", "fellowship"}
 
 # Hard guardrail: sent to the actor AND used as a post-cap.
-# Never increase this without explicit human approval — each result consumes Apify credits.
+# Never increase this without explicit human approval; each result consumes Apify credits.
 _MAX_SCHOLARSHIPS = 5
 
 log = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def _seed_scholarships_fallback(
 ) -> list[dict[str, Any]]:
     """Return scholarship/grant entries from the MCP seed dataset.
 
-    Called when APIFY_TOKEN is not set — returns the same data the MCP server
+    Called when APIFY_TOKEN is not set; returns the same data the MCP server
     (tools/opportunities_mcp.py) exposes, labelled so the user knows it is curated
     fallback data and not live-scraped results.
     """
@@ -68,7 +68,7 @@ def _seed_scholarships_fallback(
         results.append({
             "name": opp.get("title", ""),
             "provider": "🗄️ Curated (MCP seed data)",
-            "amount": f"USD {amt:,}" if amt else "—",
+            "amount": f"USD {amt:,}" if amt else "-",
             "deadline": opp.get("deadline", ""),
             "field": opp.get("field", "Any"),
             "level": opp.get("level", "Any"),
@@ -90,7 +90,7 @@ def search_scholarships_apify(
     Falls back to the MCP seed dataset when APIFY_TOKEN is not set, actor startup
     fails, or the live scrape returns zero results.
 
-    IMPORTANT — only call this tool when the user explicitly asks for scholarships,
+    IMPORTANT: only call this tool when the user explicitly asks for scholarships,
     grants, or financial aid. Do NOT call it for job searches.
     Call this AT MOST ONCE per user message. Returns at most 5 scholarships.
 
@@ -108,10 +108,10 @@ def search_scholarships_apify(
     """
     token = os.getenv("APIFY_TOKEN", "")
     if not token:
-        log.info("APIFY_TOKEN not set — returning MCP seed fallback for scholarships.")
+        log.info("APIFY_TOKEN not set; returning MCP seed fallback for scholarships.")
         return _seed_scholarships_fallback(keyword, education_level, field_of_study)
 
-    from apify_client import ApifyClient  # lazy import — only needed at call time
+    from apify_client import ApifyClient  # lazy import, only needed at call time
 
     client = ApifyClient(token)
     run_input: dict[str, Any] = {
@@ -128,11 +128,11 @@ def search_scholarships_apify(
     # background log-streaming thread which times out on Windows (impit.TimeoutException).
     started = client.actor(_ACTOR_ID).start(run_input=run_input)
     if not started:
-        log.info("Apify scholarship actor failed to start — returning MCP seed fallback.")
+        log.info("Apify scholarship actor failed to start; returning MCP seed fallback.")
         return _seed_scholarships_fallback(keyword, education_level, field_of_study)
     run = client.run(started.id).wait_for_finish()
     if not run or not run.default_dataset_id:
-        log.info("Apify scholarship run produced no dataset — returning MCP seed fallback.")
+        log.info("Apify scholarship run produced no dataset; returning MCP seed fallback.")
         return _seed_scholarships_fallback(keyword, education_level, field_of_study)
 
     results: list[dict[str, Any]] = []
@@ -157,6 +157,6 @@ def search_scholarships_apify(
         })
 
     if not results:
-        log.info("Live scholarship scrape returned zero results — returning MCP seed fallback.")
+        log.info("Live scholarship scrape returned zero results; returning MCP seed fallback.")
         return _seed_scholarships_fallback(keyword, education_level, field_of_study)
     return results

@@ -132,14 +132,14 @@ graph TD
 ### Test Case 3: PII stays local
 
 - **Input:** A resume upload containing name, email, and visa status.
-- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.) — visa/work-authorization status is never one of them, no matter what the resume contains.
+- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.); visa/work-authorization status is never one of them, no matter what the resume contains.
 - **Check:** No name/email/visa value from the resume ever appears in the chat UI or logs.
 
 ### Test Case 4: Work-authorization confirmed by chat only, never by resume
 
 - **Input:** Upload a resume, then search for roles where at least one result requires US citizenship or a security clearance.
 - **Expected:** `eligibility` asks a one-time chat question ("US Citizen / Green Card", "Visa - need sponsorship", "F-1 OPT/CPT eligible", or "Prefer not to say") instead of guessing from the resume; the ranked table only appears after you answer.
-- **Check:** The citizenship/clearance-restricted role in the final table is flagged consistently with your answer (e.g. "❌ Not eligible — requires US citizenship" if you said you need sponsorship); re-uploading a resume in the same session does not re-ask the question.
+- **Check:** The citizenship/clearance-restricted role in the final table is flagged consistently with your answer (e.g. "❌ Not eligible, requires US citizenship" if you said you need sponsorship); re-uploading a resume in the same session does not re-ask the question.
 
 ---
 
@@ -177,7 +177,7 @@ adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/e
 
 ```text
 path-pilot/
-├── AGENTS.md                         # project constitution — single source of truth
+├── AGENTS.md                         # project constitution: single source of truth
 ├── assets/kaggle-thumbnail.png       # Kaggle cover/thumbnail image (560x280)
 ├── specs/                            # Gherkin feature spec (source of truth) + architecture.md
 ├── skills/                           # SKILL.md capability cards
@@ -209,7 +209,7 @@ path-pilot/
 │   ├── pathpilot_eval.test.json      # 4 eval cases
 │   └── eval_config.json              # tool-trajectory + LLM-judge criteria
 ├── data/opportunities_seed.json      # 8-row curated fallback dataset
-└── vault/                            # Local PII only — git-ignored
+└── vault/                            # Local PII only (git-ignored)
 ```
 
 ---

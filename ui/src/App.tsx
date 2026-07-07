@@ -25,7 +25,7 @@ const LS_KEY = 'pp_history'
 const MAX_SESSIONS = 25
 
 // The orchestrator must hand off to sub-agents silently (see agent.py's ABSOLUTE
-// RULES), but LLM instruction-following isn't 100% reliable — if it narrates a
+// RULES), but LLM instruction-following isn't 100% reliable; if it narrates a
 // hand-off anyway, that text must never reach the UI as its own bubble.
 const ROOT_AGENT_NAME = 'pathpilot_orchestrator'
 
@@ -51,7 +51,7 @@ function detectQuickReplies(text: string): QuickReplySet {
       ],
     }
   }
-  // Eligibility's Step 0 work-authorization confirmation question — detected via
+  // Eligibility's Step 0 work-authorization confirmation question, detected via
   // the literal sentinel PathPilot appends server-side (see guardian.py's
   // WORK_AUTH_PENDING_MARKER), not by matching the question's exact wording,
   // since that phrasing is LLM-generated and can vary slightly between turns.
@@ -330,14 +330,14 @@ export default function App() {
     const sendStartedAt = Date.now()
     // A fast response (or a deterministically-routed reply that skips an LLM
     // call entirely) can resolve before the typing indicator's CSS animations
-    // get a single visible frame — enforce a minimum dwell time so it always
+    // get a single visible frame, so enforce a minimum dwell time so it always
     // reads as "something is happening", not a jarring instant swap.
     const MIN_TYPING_MS = 650
     setMessages(prev => [...prev, { id: typingId, role: 'agent', html: '', isTyping: true }])
 
     let agentText = ''
     // Orchestrator hand-off narration ("Got it... I am now transferring you to...")
-    // is held back here instead of shown — the user should see only the loading
+    // is held back here instead of shown: the user should see only the loading
     // animation while a hand-off is in progress. If the orchestrator turns out to
     // be the final responder (no sub-agent applied), this is shown as a fallback.
     let orchestratorText = ''
@@ -349,11 +349,11 @@ export default function App() {
       for await (const event of streamAgent(sessionId, parts)) {
         if (event.error) { setError(event.error); break }
         if (!event.content) continue
-        // resume_parser output is internal (PII-free profile) — never show it to the user
+        // resume_parser output is internal (PII-free profile); never show it to the user
         if (event.author === 'resume_parser') continue
 
         if (event.author !== currentAuthor) {
-          // A new agent has taken over this turn — its predecessor's text is
+          // A new agent has taken over this turn: its predecessor's text is
           // superseded (e.g. the real answer replacing hand-off narration),
           // not appended to.
           currentAuthor = event.author
@@ -372,7 +372,7 @@ export default function App() {
         }
 
         agentText += chunk
-        // Only update the bubble when we have real text — function_call events
+        // Only update the bubble when we have real text: function_call events
         // arrive with content but no text parts and must not collapse the typing indicator
         if (!firstChunkShown) {
           firstChunkShown = true
@@ -391,7 +391,7 @@ export default function App() {
       setError(`Stream error: ${(e as Error).message}`)
     } finally {
       if (replaceTyping && orchestratorText) {
-        // The orchestrator never handed off — its own text is the real answer.
+        // The orchestrator never handed off; its own text is the real answer.
         agentText = orchestratorText
         setMessages(prev => prev.map(m =>
           m.id === typingId ? { ...m, html: renderMd(agentText), isTyping: false, rawText: agentText } : m
@@ -489,7 +489,7 @@ export default function App() {
 
       {viewingSession && (
         <div className="readonly-bar">
-          <span>📖 Viewing past session — <strong>read only</strong></span>
+          <span>📖 Viewing past session (<strong>read only</strong>)</span>
           <button className="btn" style={{ padding: '3px 12px', fontSize: 12 }} onClick={() => setViewingSession(null)}>
             ← Back to current chat
           </button>
@@ -562,7 +562,7 @@ export default function App() {
       {viewingSession ? (
         <div className="input-bar" style={{ justifyContent: 'center', opacity: 0.6 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            📖 This is a read-only session — start a new chat to continue
+            📖 This is a read-only session, start a new chat to continue
           </span>
         </div>
       ) : (

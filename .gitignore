@@ -5,7 +5,7 @@
 *.key
 *.pem
 
-# Local PII vault — never commit user data
+# Local PII vault: never commit user data
 vault/
 data/private/
 

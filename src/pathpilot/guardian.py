@@ -11,7 +11,7 @@ from .logger import slog
 
 # ── constants ──────────────────────────────────────────────────────────────────
 
-# External tools that take real-world actions — blocked until human approves (guardrail 1)
+# External tools that take real-world actions; blocked until human approves (guardrail 1)
 _EXTERNAL_TOOLS: frozenset[str] = frozenset(
     {"send_email", "submit_form", "post_message", "http_post", "http_put", "http_patch"}
 )
@@ -46,7 +46,7 @@ _INJECTION_PATTERNS: tuple[str, ...] = (
 # Literal marker eligibility emits (see skills/eligibility-checking/SKILL.md Mode B,
 # Step 0) when it needs the job seeker to confirm their work-authorization status
 # in chat before scoring citizenship/clearance-restricted roles. This is never
-# resume-derived — resume_parser never emits it — only ever follows a plain-text
+# resume-derived (resume_parser never emits it); it only ever follows a plain-text
 # statement the user typed themselves (guardrail 3).
 WORK_AUTH_PENDING_MARKER = "<!-- PATHPILOT_WORK_AUTH_PENDING -->"
 
@@ -65,7 +65,7 @@ _WORK_AUTH_ANSWER_KEYWORDS: tuple[str, ...] = (
 # used instead of scanning conversation text because ADK scopes a request's
 # `contents` to the current invocation branch: once eligibility (a sub-agent
 # nested under resume_then_score) hands control back to the root orchestrator,
-# the root's own next before_model_callback cannot see eligibility's message —
+# the root's own next before_model_callback cannot see eligibility's message;
 # it's on a deeper branch. State has no such scoping, so it's the only
 # reliable way to carry this signal back across the branch boundary.
 WORK_AUTH_PENDING_STATE_KEY = "work_auth_pending"
@@ -120,7 +120,7 @@ def request_send_approval(recipient: str, message: str) -> dict:
 
     Wrapped as a LongRunningFunctionTool so the ADK runner PAUSES immediately
     after this call and waits for the operator to resume with an explicit
-    approval or rejection.  Nothing is transmitted here — this function only
+    approval or rejection.  Nothing is transmitted here; this function only
     records the intent and returns a pending ticket for human review.
     """
     slog("info", event="send_approval_requested")
@@ -136,7 +136,7 @@ def request_send_approval(recipient: str, message: str) -> dict:
     }
 
 
-# Wrapped tool — the LongRunningFunctionTool causes ADK runner to pause on first
+# Wrapped tool: the LongRunningFunctionTool causes ADK runner to pause on first
 # return and only continue when the client resumes with an approval response.
 send_approval_tool = LongRunningFunctionTool(func=request_send_approval)
 
@@ -160,7 +160,7 @@ def route_work_auth_confirmation_reply(
 
     The orchestrator's LLM routing has a known failure mode with this model
     (see agent.py's comment on resume_then_score being hardwired because
-    gemini-flash-lite "kept ignoring" fragile instruction-based routing) —
+    gemini-flash-lite "kept ignoring" fragile instruction-based routing),
     trusting it to correctly classify "does this reply answer the pending
     work-auth question" would reintroduce that same risk. Instead this checks
     both conditions in code: state carries the pending-question flag eligibility
@@ -219,10 +219,10 @@ def guardian_before_tool(
     """Before-tool callback: blocks external actions and catches PII in args."""
     tool_name: str = getattr(tool, "name", str(tool))
 
-    # Log the call without raw args — they may contain PII (guardrail 3)
+    # Log the call without raw args; they may contain PII (guardrail 3)
     slog("info", event="tool_call", tool=tool_name)
 
-    # Guardrail — ELIGIBILITY IS ANALYSIS-ONLY: block any tool call from the eligibility agent.
+    # Guardrail (ELIGIBILITY IS ANALYSIS-ONLY): block any tool call from the eligibility agent.
     # eligibility has tools=[] so ADK prevents most calls, but this callback is the hard stop
     # that ensures the run continues gracefully rather than crashing.
     agent_name: str = getattr(tool_context, "agent_name", None) or ""
@@ -233,7 +233,7 @@ def guardian_before_tool(
             "message": "Eligibility agent is analysis-only. No tool calls are permitted from this agent.",
         }
 
-    # Guardrail 1 — HUMAN-IN-THE-LOOP: block external real-world actions
+    # Guardrail 1 (HUMAN-IN-THE-LOOP): block external real-world actions
     if tool_name in _EXTERNAL_TOOLS:
         slog("warning", event="guardian_blocked", tool=tool_name, reason="human_approval_required")
         return {
@@ -244,7 +244,7 @@ def guardian_before_tool(
             ),
         }
 
-    # Guardrail 3 — PII STAYS LOCAL: block any call whose args include PII field names
+    # Guardrail 3 (PII STAYS LOCAL): block any call whose args include PII field names
     if args:
         pii_keys = [k for k in args if k.lower() in _PII_FIELDS]
         if pii_keys:
