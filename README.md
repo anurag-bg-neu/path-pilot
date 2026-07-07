@@ -1,4 +1,4 @@
-# **_PathPilot: Privacy-first multi-agent assistant for all job seekers._**
+# **_PathPilot: Privacy first multi-agent assistant for all job seekers._**
 
 <img src="assets/kaggle-thumbnail.png" alt="PathPilot cover banner" width="100%">
 
@@ -111,7 +111,7 @@ graph TD
 | PII stays local          | Resume content parsed locally into a PII-free profile; raw text never forwarded                                           |
 | Prompt-injection defense | Fetched web content is screened and redacted before the LLM sees it                                                       |
 | Audit log                | `AuditLogPlugin` emits structured JSON for every agent turn and tool call                                                 |
-| Free-tier only           | Gemini Flash via AI Studio free tier — no billing required                                                                |
+| Free-tier only           | Gemini Flash via AI Studio free tier - no billing required                                                                |
 
 ---
 
