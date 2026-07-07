@@ -68,7 +68,7 @@ def every_result_has_source_url(ctx: dict) -> None:
         assert s.get("source_url"), f"Missing 'source_url' in result: {s}"
 
 
-# ─── Scenario 2: Eligibility filtering ─────────────────────────────────────────
+# ─── Scenario 2: Eligibility filtering by confirmed work-authorization status ──
 
 
 @given("a list of roles that includes some requiring US citizenship")
@@ -76,20 +76,25 @@ def roles_with_citizenship(ctx: dict, roles_list: list) -> None:
     ctx["roles"] = roles_list
 
 
-@when("the Eligibility agent evaluates the roles against the F-1 profile")
-def eligibility_evaluates(ctx: dict) -> None:
+@when(parsers.parse('the Eligibility agent evaluates the roles against a "{work_auth}" status'))
+def eligibility_evaluates(ctx: dict, work_auth: str) -> None:
     from pathpilot.agents.eligibility import evaluate_opportunity  # noqa: PLC0415
 
+    # "none" is the Examples-table placeholder for "nothing confirmed yet" (a
+    # true empty string doesn't round-trip through Gherkin's quoted-value syntax).
+    if work_auth == "none":
+        work_auth = ""
+
     ctx["verdicts"] = {
-        role["title"]: evaluate_opportunity(role)
+        role["title"]: evaluate_opportunity(role, work_auth)
         for role in ctx["roles"]
     }
 
 
-@then(
-    'roles requiring citizenship or a security clearance are marked "Not eligible"'
-)
-def restricted_roles_not_eligible(ctx: dict) -> None:
+@then(parsers.parse(
+    'roles requiring citizenship or a security clearance are marked "{verdict}"'
+))
+def restricted_roles_marked(ctx: dict, verdict: str) -> None:
     restricted = [
         r for r in ctx.get("roles", [])
         if r.get("citizenship_required") or r.get("clearance")
@@ -98,8 +103,8 @@ def restricted_roles_not_eligible(ctx: dict) -> None:
     for role in restricted:
         v = verdicts.get(role["title"])
         assert v is not None, f"No verdict returned for role: {role['title']}"
-        assert v["verdict"] == "Not eligible", (
-            f"Expected 'Not eligible' for {role['title']}, got: {v}"
+        assert v["verdict"] == verdict, (
+            f"Expected '{verdict}' for {role['title']}, got: {v}"
         )
 
 
@@ -117,6 +122,89 @@ def open_roles_eligible(ctx: dict) -> None:
             f"Expected 'Eligible' for {role['title']}, got: {v}"
         )
         assert v.get("reason"), f"Missing reason for eligible role: {role['title']}"
+
+
+# ─── Scenario: Never infer work-authorization status from a resume ────────────
+
+
+@given("a job seeker uploads a resume without stating any work-authorization status")
+def resume_without_work_auth_statement(ctx: dict) -> None:
+    ctx["work_auth_stated"] = ""  # nothing typed by the user in this session
+
+
+@when("the Resume Parser agent extracts the profile")
+def resume_parser_extracts_profile(ctx: dict) -> None:
+    from pathpilot.agents.resume_parser import _INSTRUCTION  # noqa: PLC0415
+
+    ctx["resume_parser_instruction"] = _INSTRUCTION
+
+
+@then("the profile never includes a work-authorization or visa field")
+def profile_never_includes_visa(ctx: dict) -> None:
+    instruction = ctx.get("resume_parser_instruction", "")
+    assert "never infer or state visa status" in instruction.lower(), (
+        "resume_parser's instruction must explicitly forbid inferring visa/work-authorization status"
+    )
+
+
+@then(parsers.parse(
+    'a role requiring citizenship or clearance is marked "{verdict}", never guessed'
+))
+def restricted_role_needs_info(ctx: dict, verdict: str) -> None:
+    from pathpilot.agents.eligibility import evaluate_opportunity  # noqa: PLC0415
+
+    restricted_role = {"title": "Cleared Role", "clearance": True}
+    result = evaluate_opportunity(restricted_role, ctx.get("work_auth_stated", ""))
+    assert result["verdict"] == verdict, (
+        f"Expected '{verdict}' when no work-auth status is confirmed, got: {result}"
+    )
+
+
+@then(parsers.parse(
+    'a role with no such requirement is unaffected and marked "{verdict}"'
+))
+def open_role_unaffected(ctx: dict, verdict: str) -> None:
+    from pathpilot.agents.eligibility import evaluate_opportunity  # noqa: PLC0415
+
+    open_role = {"title": "Open Role", "cpt_opt_compatible": True}
+    result = evaluate_opportunity(open_role, ctx.get("work_auth_stated", ""))
+    assert result["verdict"] == verdict, (
+        f"Expected '{verdict}' for a role with no restriction regardless of status, got: {result}"
+    )
+
+
+# ─── Scenario: Never silently merge duplicate-looking job listings ────────────
+
+
+@given("two Discovery-scraped job listings with identical title and company")
+def duplicate_looking_listings(ctx: dict) -> None:
+    ctx["duplicate_listings"] = [
+        {"title": "Systems Engineer I - Nights", "company": "Panasonic Energy Corporation of North America"},
+        {"title": "Systems Engineer I - Nights", "company": "Panasonic Energy Corporation of North America"},
+    ]
+
+
+@when("the Eligibility agent's scoring instructions are checked")
+def eligibility_instructions_checked(ctx: dict) -> None:
+    from pathpilot.agents.eligibility import _INSTRUCTION  # noqa: PLC0415
+
+    ctx["eligibility_instruction"] = _INSTRUCTION
+
+
+@then("the instructions explicitly forbid merging them into a single row")
+def instructions_forbid_merging(ctx: dict) -> None:
+    instruction = ctx.get("eligibility_instruction", "").lower()
+    assert "duplicate" in instruction and "merge" in instruction, (
+        "eligibility's instruction must explicitly forbid merging duplicate-looking rows"
+    )
+
+
+@then("the instructions require a final row-count recheck before responding")
+def instructions_require_final_recheck(ctx: dict) -> None:
+    instruction = ctx.get("eligibility_instruction", "").lower()
+    assert "recount" in instruction, (
+        "eligibility's instruction must require a final recount of table rows before responding"
+    )
 
 
 # ─── Scenario 3: Human approval required ───────────────────────────────────────

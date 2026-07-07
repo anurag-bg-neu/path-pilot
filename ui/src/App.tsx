@@ -24,6 +24,11 @@ function uid(): string {
 const LS_KEY = 'pp_history'
 const MAX_SESSIONS = 25
 
+// The orchestrator must hand off to sub-agents silently (see agent.py's ABSOLUTE
+// RULES), but LLM instruction-following isn't 100% reliable — if it narrates a
+// hand-off anyway, that text must never reach the UI as its own bubble.
+const ROOT_AGENT_NAME = 'pathpilot_orchestrator'
+
 function fmtDate(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
@@ -43,6 +48,20 @@ function detectQuickReplies(text: string): QuickReplySet {
       options: [
         { label: '✅ Yes, Tier 1 companies', value: 'yes' },
         { label: '🌐 No, show all companies', value: 'no'  },
+      ],
+    }
+  }
+  // Eligibility's Step 0 work-authorization confirmation question — detected via
+  // the literal sentinel PathPilot appends server-side (see guardian.py's
+  // WORK_AUTH_PENDING_MARKER), not by matching the question's exact wording,
+  // since that phrasing is LLM-generated and can vary slightly between turns.
+  if (text.includes('PATHPILOT_WORK_AUTH_PENDING')) {
+    return {
+      options: [
+        { label: '🇺🇸 US Citizen / Green Card', value: 'US Citizen / Green Card' },
+        { label: '📄 Visa - need sponsorship', value: 'Visa - need sponsorship (e.g. H-1B)' },
+        { label: '🎓 F-1 OPT/CPT eligible', value: 'F-1 OPT/CPT eligible' },
+        { label: '🤐 Prefer not to say', value: 'Prefer not to say' },
       ],
     }
   }
@@ -308,10 +327,23 @@ export default function App() {
     if (parts.length === 0) parts.push({ text: '' })
 
     const typingId = uid()
+    const sendStartedAt = Date.now()
+    // A fast response (or a deterministically-routed reply that skips an LLM
+    // call entirely) can resolve before the typing indicator's CSS animations
+    // get a single visible frame — enforce a minimum dwell time so it always
+    // reads as "something is happening", not a jarring instant swap.
+    const MIN_TYPING_MS = 650
     setMessages(prev => [...prev, { id: typingId, role: 'agent', html: '', isTyping: true }])
 
     let agentText = ''
+    // Orchestrator hand-off narration ("Got it... I am now transferring you to...")
+    // is held back here instead of shown — the user should see only the loading
+    // animation while a hand-off is in progress. If the orchestrator turns out to
+    // be the final responder (no sub-agent applied), this is shown as a fallback.
+    let orchestratorText = ''
+    let currentAuthor: string | undefined = undefined
     let replaceTyping = true
+    let firstChunkShown = false
 
     try {
       for await (const event of streamAgent(sessionId, parts)) {
@@ -319,22 +351,53 @@ export default function App() {
         if (!event.content) continue
         // resume_parser output is internal (PII-free profile) — never show it to the user
         if (event.author === 'resume_parser') continue
-        for (const part of event.content.parts) {
-          if (part.text) agentText += part.text
+
+        if (event.author !== currentAuthor) {
+          // A new agent has taken over this turn — its predecessor's text is
+          // superseded (e.g. the real answer replacing hand-off narration),
+          // not appended to.
+          currentAuthor = event.author
+          agentText = ''
         }
+
+        let chunk = ''
+        for (const part of event.content.parts) {
+          if (part.text) chunk += part.text
+        }
+        if (!chunk) continue
+
+        if (event.author === ROOT_AGENT_NAME) {
+          orchestratorText += chunk
+          continue
+        }
+
+        agentText += chunk
         // Only update the bubble when we have real text — function_call events
         // arrive with content but no text parts and must not collapse the typing indicator
-        if (agentText) {
-          const html = renderMd(agentText)
-          setMessages(prev => prev.map(m =>
-            m.id === typingId ? { ...m, html, isTyping: false, rawText: agentText } : m
-          ))
-          replaceTyping = false
+        if (!firstChunkShown) {
+          firstChunkShown = true
+          const elapsed = Date.now() - sendStartedAt
+          if (elapsed < MIN_TYPING_MS) {
+            await new Promise(resolve => setTimeout(resolve, MIN_TYPING_MS - elapsed))
+          }
         }
+        const html = renderMd(agentText)
+        setMessages(prev => prev.map(m =>
+          m.id === typingId ? { ...m, html, isTyping: false, rawText: agentText } : m
+        ))
+        replaceTyping = false
       }
     } catch (e) {
       setError(`Stream error: ${(e as Error).message}`)
     } finally {
+      if (replaceTyping && orchestratorText) {
+        // The orchestrator never handed off — its own text is the real answer.
+        agentText = orchestratorText
+        setMessages(prev => prev.map(m =>
+          m.id === typingId ? { ...m, html: renderMd(agentText), isTyping: false, rawText: agentText } : m
+        ))
+        replaceTyping = false
+      }
       if (replaceTyping) setMessages(prev => prev.filter(m => m.id !== typingId))
       if (agentText) {
         setQuickReplies(detectQuickReplies(agentText))

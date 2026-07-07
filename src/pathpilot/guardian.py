@@ -3,7 +3,9 @@ import json
 import re
 from typing import Any, Optional
 
+from google.adk.models.llm_response import LlmResponse
 from google.adk.tools import LongRunningFunctionTool
+from google.genai import types as genai_types
 
 from .logger import slog
 
@@ -40,6 +42,33 @@ _INJECTION_PATTERNS: tuple[str, ...] = (
     "system:",
     "bypass",
 )
+
+# Literal marker eligibility emits (see skills/eligibility-checking/SKILL.md Mode B,
+# Step 0) when it needs the job seeker to confirm their work-authorization status
+# in chat before scoring citizenship/clearance-restricted roles. This is never
+# resume-derived — resume_parser never emits it — only ever follows a plain-text
+# statement the user typed themselves (guardrail 3).
+WORK_AUTH_PENDING_MARKER = "<!-- PATHPILOT_WORK_AUTH_PENDING -->"
+
+# Keywords that plausibly answer the work-authorization confirmation question.
+# Deterministic safety valve: only force-route to eligibility when the reply
+# actually looks like an answer, so a genuine topic change (e.g. "show me
+# scholarships instead") still falls through to normal LLM routing.
+_WORK_AUTH_ANSWER_KEYWORDS: tuple[str, ...] = (
+    "citizen", "green card", "greencard", "permanent resident",
+    "visa", "sponsor", "opt", "cpt", "clearance",
+    "h-1b", "h1b", "f-1", "f1", "prefer not",
+)
+
+# Session-state key eligibility sets when it asks the work-auth confirmation
+# question (see eligibility.py's ensure_work_auth_marker). Session state is
+# used instead of scanning conversation text because ADK scopes a request's
+# `contents` to the current invocation branch: once eligibility (a sub-agent
+# nested under resume_then_score) hands control back to the root orchestrator,
+# the root's own next before_model_callback cannot see eligibility's message —
+# it's on a deeper branch. State has no such scoping, so it's the only
+# reliable way to carry this signal back across the branch boundary.
+WORK_AUTH_PENDING_STATE_KEY = "work_auth_pending"
 
 
 # ── helpers (importable by tests) ──────────────────────────────────────────────
@@ -110,6 +139,74 @@ def request_send_approval(recipient: str, message: str) -> dict:
 # Wrapped tool — the LongRunningFunctionTool causes ADK runner to pause on first
 # return and only continue when the client resumes with an approval response.
 send_approval_tool = LongRunningFunctionTool(func=request_send_approval)
+
+
+# ── work-authorization confirmation routing ───────────────────────────────────
+
+def _content_text(content: Any) -> str:
+    """Flatten a genai Content's text parts into one lowercase string."""
+    if not content or not getattr(content, "parts", None):
+        return ""
+    return " ".join(
+        p.text for p in content.parts if getattr(p, "text", None)
+    ).lower()
+
+
+def route_work_auth_confirmation_reply(
+    callback_context: Any,
+    llm_request: Any,
+) -> Optional[LlmResponse]:
+    """Deterministically route a work-auth confirmation reply to eligibility.
+
+    The orchestrator's LLM routing has a known failure mode with this model
+    (see agent.py's comment on resume_then_score being hardwired because
+    gemini-flash-lite "kept ignoring" fragile instruction-based routing) —
+    trusting it to correctly classify "does this reply answer the pending
+    work-auth question" would reintroduce that same risk. Instead this checks
+    both conditions in code: state carries the pending-question flag eligibility
+    set (see WORK_AUTH_PENDING_STATE_KEY) AND this new user turn plausibly
+    answers it (keyword match). If both hold, synthesize the
+    transfer_to_agent(eligibility) call directly, bypassing the orchestrator's
+    own LLM call for this turn entirely (deterministic, no hallucination
+    risk). Otherwise return None and let normal LLM routing proceed, so a
+    genuine topic change still routes normally instead of being force-fed to
+    eligibility.
+    """
+    contents = getattr(llm_request, "contents", None) or []
+    if not contents:
+        return None
+
+    last_content = contents[-1]
+    if getattr(last_content, "role", None) != "user":
+        return None
+
+    state = getattr(callback_context, "state", None)
+    if state is None or not state.get(WORK_AUTH_PENDING_STATE_KEY):
+        return None
+
+    user_text = _content_text(last_content)
+    if not any(k in user_text for k in _WORK_AUTH_ANSWER_KEYWORDS):
+        return None
+
+    # Consume the flag so a later, unrelated turn that happens to mention one
+    # of these keywords (e.g. "what about visa sponsorship in general?") isn't
+    # force-routed to eligibility again.
+    state[WORK_AUTH_PENDING_STATE_KEY] = False
+
+    slog("info", event="work_auth_reply_routed", target="eligibility")
+    return LlmResponse(
+        content=genai_types.Content(
+            role="model",
+            parts=[
+                genai_types.Part(
+                    function_call=genai_types.FunctionCall(
+                        name="transfer_to_agent",
+                        args={"agent_name": "eligibility"},
+                    )
+                )
+            ],
+        )
+    )
 
 
 # ── ADK callbacks ──────────────────────────────────────────────────────────────

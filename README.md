@@ -15,7 +15,7 @@ Job seekers: Students, Career Changers, & International Professionals alike face
 |------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | 1    | **Discovery**     | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor)                         |
 | 2    | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT)                                                            |
-| 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile; ranked results in a single response                                  |
+| 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile; if a listing requires citizenship/clearance, asks a one-time chat confirmation (never resume-derived) before finalizing the ranked table |
 | 4    | **Draft Coach**   | Drafts cover letters and outreach using *only* facts the job seeker provides                                                         |
 | 5    | **Guardian**      | Enforces all safety guardrails; pauses for human approval before any external action                                                 |
 
@@ -132,8 +132,14 @@ graph TD
 ### Test Case 3: PII stays local
 
 - **Input:** A resume upload containing name, email, and visa status.
-- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.); `guardian_before_tool` blocks any tool call carrying a raw PII field name.
-- **Check:** No name/email/visa value ever appears in the chat UI or logs.
+- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.) — visa/work-authorization status is never one of them, no matter what the resume contains.
+- **Check:** No name/email/visa value from the resume ever appears in the chat UI or logs.
+
+### Test Case 4: Work-authorization confirmed by chat only, never by resume
+
+- **Input:** Upload a resume, then search for roles where at least one result requires US citizenship or a security clearance.
+- **Expected:** `eligibility` asks a one-time chat question ("US Citizen / Green Card", "Visa - need sponsorship", "F-1 OPT/CPT eligible", or "Prefer not to say") instead of guessing from the resume; the ranked table only appears after you answer.
+- **Check:** The citizenship/clearance-restricted role in the final table is flagged consistently with your answer (e.g. "❌ Not eligible — requires US citizenship" if you said you need sponsorship); re-uploading a resume in the same session does not re-ask the question.
 
 ---
 
@@ -234,7 +240,7 @@ path-pilot/
 |-------------------|----------|----------------------------------------------------------------------------------------|
 | `GOOGLE_API_KEY`  | Yes      | Gemini API key from [AI Studio](https://aistudio.google.com) (free tier)               |
 | `PATHPILOT_MODEL` | No       | Override the Gemini model (default: `gemini-3.1-flash-lite`)                           |
-| `APIFY_TOKEN`     | No       | Apify API token for live job scraping — [get one free at apify.com](https://apify.com) |
+| `APIFY_TOKEN`     | No       | Apify API token for live job scraping - [get one free at apify.com](https://apify.com) |
 
 > _**Note:** Never commit your `.env` - it holds your real API keys._
 ---

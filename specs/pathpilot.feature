@@ -17,11 +17,30 @@ Feature: Discover and qualify opportunities for a job seeker
     Then the Discovery agent returns a list of scholarships with name, amount, and deadline
     And every result includes the source link it came from
 
-  Scenario: Filter opportunities by work-authorization eligibility
+  Scenario Outline: Filter opportunities by a confirmed work-authorization status
     Given a list of roles that includes some requiring US citizenship
-    When the Eligibility agent evaluates the roles against the F-1 profile
-    Then roles requiring citizenship or a security clearance are marked "Not eligible"
+    When the Eligibility agent evaluates the roles against a "<work_auth>" status
+    Then roles requiring citizenship or a security clearance are marked "<verdict>"
     And roles compatible with CPT or OPT are marked "Eligible" with the reason
+
+    Examples:
+      | work_auth              | verdict      |
+      | needs_sponsorship       | Not eligible |
+      | citizen_or_green_card   | Eligible     |
+      | none                    | Needs info   |
+
+  Scenario: Never infer work-authorization status from a resume
+    Given a job seeker uploads a resume without stating any work-authorization status
+    When the Resume Parser agent extracts the profile
+    Then the profile never includes a work-authorization or visa field
+    And a role requiring citizenship or clearance is marked "Needs info", never guessed
+    And a role with no such requirement is unaffected and marked "Eligible"
+
+  Scenario: Never silently merge duplicate-looking job listings when scoring
+    Given two Discovery-scraped job listings with identical title and company
+    When the Eligibility agent's scoring instructions are checked
+    Then the instructions explicitly forbid merging them into a single row
+    And the instructions require a final row-count recheck before responding
 
   Scenario: Require human approval before any external action
     Given the job seeker has drafted an outreach message

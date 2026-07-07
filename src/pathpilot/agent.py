@@ -13,7 +13,7 @@ from .agents.discovery import discovery_agent
 from .agents.eligibility import eligibility_agent
 from .agents.draft_coach import draft_coach_agent
 from .agents.resume_parser import resume_parser_agent
-from .guardian import guardian_before_tool
+from .guardian import guardian_before_tool, route_work_auth_confirmation_reply
 from .plugins import AuditLogPlugin
 
 _MODEL = os.getenv("PATHPILOT_MODEL", "gemini-3.1-flash-lite")
@@ -59,6 +59,15 @@ ROUTING TABLE — first matching row wins
 5. User asks for cover letter / outreach drafting:
    → transfer_to_agent(agent_name="draft_coach")
 
+6. Your immediately preceding message asked the job seeker to confirm their
+   work-authorization status (a Step 0 eligibility question), and this new user
+   message answers it (states citizenship, green card, a visa type, a
+   sponsorship need, or explicitly declines to say):
+   → transfer_to_agent(agent_name="eligibility") — SILENTLY. Output NOTHING of
+     your own before this call: no "thank you", no summary of what you're
+     about to do, no restating their answer. The very first thing the user
+     sees in this turn must be eligibility's own response.
+
 7. User requests a real-world action (send email, submit form, post):
    → route through guardian, require explicit approval, log.
 
@@ -70,6 +79,9 @@ ABSOLUTE RULES
 - NEVER call discovery more than once per user turn.
 - NEVER fabricate listings, skills, scores, or credentials.
 - NEVER expose PII (name, email, phone, address).
+- Every transfer_to_agent call is SILENT — never narrate the handoff itself
+  ("I am now transferring you to...", "Thank you for providing...", "Note:
+  since you have already..."). The sub-agent's own response IS the reply.
 """
 
 root_agent = LlmAgent(
@@ -83,6 +95,11 @@ root_agent = LlmAgent(
     instruction=_INSTRUCTION,
     sub_agents=[resume_then_score, discovery_agent, draft_coach_agent],
     before_tool_callback=guardian_before_tool,
+    # Deterministically routes a reply to eligibility's work-auth confirmation
+    # question (see guardian.py) — bypasses this LLM call for that one turn so
+    # the handoff can't be mis-routed the way pure instruction-based routing
+    # once was for resume_then_score (see comment above).
+    before_model_callback=route_work_auth_confirmation_reply,
 )
 
 # App bundles root_agent + AuditLogPlugin.
