@@ -1,12 +1,9 @@
-# PathPilot
+# **_PathPilot: Privacy-first multi-agent assistant for all job seekers._**
 
 <img src="assets/kaggle-thumbnail.png" alt="PathPilot cover banner" width="100%">
 
-**Privacy-first, multi-agent scholarship and career assistant for all job seekers.**
-
-- [5-Day AI Agents Vibe Coding with Kaggle & Google Capstone](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) — *Agents for Good* track.
-- [5-Day AI Agents Vibe Coding Course With Kaggle & Google](https://www.kaggle.com/learn-guide/5-day-agents-vibecoding) — *Agentic AI Course*
-- Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and [Google AI Studio's Gemini API](https://aistudio.google.com/).
+- _Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and [Google AI Studio's Gemini API](https://aistudio.google.com/)._
+- _Inspired by [5-Day AI Agents Vibe-Coding with Kaggle & Google](https://www.kaggle.com/competitions/5-day-ai-agents-intensive-vibecoding-course-with-google) - Agents for Good track._
 
 ---
 
@@ -40,25 +37,25 @@ In the first  terminal:
 ```bash
 git clone https://github.com/anurag-bg-neu/path-pilot.git
 cd path-pilot
-cp .env.example .env                            # add GOOGLE_API_KEY & APIFY_TOKEN
+cp .env.example .env                           # add GOOGLE_API_KEY & APIFY_TOKEN
 
-python -m venv .venv && .venv\Scripts\activate  # Windows
-# source .venv/bin/activate                     # Mac/Linux
+python -m venv .venv && .venv\Scripts\activate # Windows
+# source .venv/bin/activate                    # Mac/Linux
 pip install -r requirements.txt
 
-adk web src/pathpilot --no-reload               # backend — :8000  (--no-reload required on Windows)
+adk web src/pathpilot --no-reload              # backend — :8000  (--no-reload required on Windows)
 ```
 
 In a second terminal:
 
 ```bash
-cd ui && npm install && npm run dev             # frontend — :3000
+cd ui && npm install && npm run dev            # frontend — :3000
 ```
 
 Run the test suite:
 
 ```bash
-pytest                                          # 6/6 passing
+pytest                                         # 6/6 passing
 ```
 
 > **Note:** PathPilot has the two processes (ADK backend, Vite frontend) that are started separately, as shown above.
@@ -93,13 +90,13 @@ graph TD
 
 ## How to Run
 
-- **Backend**: `adk web src/pathpilot --no-reload` — ADK dev server at `http://127.0.0.1:8000`
-- **Frontend**: `cd ui && npm run dev` (or `python ui/serve.py`, a dependency-free alternative) — chat UI at `http://127.0.0.1:3000`
-- **Tests**: `pytest` — runs the 6-scenario suite
+- **Backend**: `adk web src/pathpilot --no-reload` - ADK dev server at `http://127.0.0.1:8000`
+- **Frontend**: `cd ui && npm run dev` (or `python ui/serve.py`, a dependency-free alternative) - chat UI at `http://127.0.0.1:3000`
+- **Tests**: `pytest` - runs the 6-scenario suite
 
 ---
 
-## Security guardrails (Day 4 — Agents for Good)
+## Security guardrails
 
 | Guardrail                | Implementation                                                                                                            |
 |--------------------------|---------------------------------------------------------------------------------------------------------------------------|
@@ -134,51 +131,51 @@ graph TD
 
 ---
 
+<!--
 ## Demo
 
 ▶ [YouTube link](https://youtu.be/cAFQcutAnm8)
-
----
+-->
 
 ## Project layout
 
 ```text
 path-pilot/
-├── AGENTS.md                           # project constitution — single source of truth
-├── assets/kaggle-thumbnail.png         # Kaggle cover/thumbnail image (560x280)
-├── specs/                              # Gherkin feature spec (source of truth) + architecture.md
-├── skills/                             # SKILL.md capability cards
+├── AGENTS.md                         # project constitution — single source of truth
+├── assets/kaggle-thumbnail.png       # Kaggle cover/thumbnail image (560x280)
+├── specs/                            # Gherkin feature spec (source of truth) + architecture.md
+├── skills/                           # SKILL.md capability cards
 │   ├── eligibility-checking/
 │   ├── resume-parsing/
 │   └── draft-coaching/
-├── src/pathpilot/                      # ADK agents
-│   ├── agent.py                        # Orchestrator + SequentialAgent pipeline + App
-│   ├── guardian.py                     # Safety guardrails (before/after_tool_callback)
-│   ├── plugins.py                      # Structured audit logger (AuditLogPlugin)
-│   ├── logger.py                       # JSON logger -> stdout
-│   ├── apify_jobs_scraper.py           # Parallel LinkedIn / Indeed / agentx scraper
-│   ├── apify_scholarship_scraper.py    # Scholarship web scraper
+├── src/pathpilot/                    # ADK agents
+│   ├── agent.py                      # Orchestrator + SequentialAgent pipeline + App
+│   ├── guardian.py                   # Safety guardrails (before/after_tool_callback)
+│   ├── plugins.py                    # Structured audit logger (AuditLogPlugin)
+│   ├── logger.py                     # JSON logger -> stdout
+│   ├── apify_jobs_scraper.py         # Parallel LinkedIn / Indeed / agentx scraper
+│   ├── apify_scholarship_scraper.py  # Scholarship web scraper
 │   └── agents/
 │       ├── discovery.py
 │       ├── eligibility.py
 │       ├── resume_parser.py
 │       └── draft_coach.py
 ├── tools/
-│   └── opportunities_mcp.py            # Standalone FastMCP server (not runtime-wired into discovery.py)
-├── ui/                                 # React + Vite + TypeScript frontend
+│   └── opportunities_mcp.py          # Standalone FastMCP server (not runtime-wired into discovery.py)
+├── ui/                               # React + Vite + TypeScript frontend
 │   └── src/
-│       ├── App.tsx                     # Chat UI with history, pagination, animations
-│       ├── api.ts                      # ADK SSE streaming client
+│       ├── App.tsx                   # Chat UI with history, pagination, animations
+│       ├── api.ts                    # ADK SSE streaming client
 │       └── types.ts
 ├── tests/
-│   └── test_pathpilot.py               # pytest-bdd scenarios (all 6 green)
-├── data/opportunities_seed.json        # 8-row curated fallback dataset
-└── vault/                              # Local PII only — git-ignored
+│   └── test_pathpilot.py             # pytest-bdd scenarios (all 6 green)
+├── data/opportunities_seed.json      # 8-row curated fallback dataset
+└── vault/                            # Local PII only — git-ignored
 ```
 
 ---
 
-## Concept → file map (for judges)
+## Concept → file map
 
 | Course concept           | Implementation                                                                        | Key file(s)                                                                |
 |--------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
@@ -191,10 +188,10 @@ path-pilot/
 
 ## Troubleshooting
 
-1. **`adk web` doesn't pick up code changes (Windows)** — restart with `adk web src/pathpilot --no-reload`; `--no-reload` is required on Windows.
-2. **`DeprecationWarning: SequentialAgent is deprecated...`** — cosmetic only; `resume_then_score` still works correctly and all tests pass.
-3. **Job search only returns "🗄️ Curated (MCP seed data)" results** — `APIFY_TOKEN` isn't set in `.env`; live scraping is silently skipped in favor of the 8-row seed fallback.
-4. **`404 Model Not Found`** — check `PATHPILOT_MODEL` isn't pointing at a retired Gemini model; default is `gemini-3.1-flash-lite`.
+1. **`adk web` doesn't pick up code changes (Windows)** - restart with `adk web src/pathpilot --no-reload`; `--no-reload` is required on Windows.
+2. **`DeprecationWarning: SequentialAgent is deprecated...`** - cosmetic only; `resume_then_score` still works correctly and all tests pass.
+3. **Job search only returns "Curated (MCP seed data)" results** - `APIFY_TOKEN` isn't set in `.env`; live scraping is silently skipped in favor of the mock-seed fallback.
+4. **`404 Model Not Found`** - check `PATHPILOT_MODEL` isn't pointing at a retired Gemini model; default is `gemini-3.1-flash-lite`.
 
 ---
 
@@ -210,7 +207,7 @@ path-pilot/
 
 ## Repository
 
-Already live at [github.com/anurag-bg-neu/path-pilot](https://github.com/anurag-bg-neu/path-pilot). Never commit `.env` — it holds your real API key.
+Already live at [github.com/anurag-bg-neu/path-pilot](https://github.com/anurag-bg-neu/path-pilot). Never commit `.env` - it holds your real API key.
 
 ---
 
