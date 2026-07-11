@@ -71,6 +71,7 @@ adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/e
 ## Solution Architecture
 
 Routing between agents is **LLM-decided** (the `orchestrator` calls `transfer_to_agent`) except `resume_then_score`, which is a hardwired `SequentialAgent` specifically so that handoff *can't* be LLM-rerouted. Guardrails are **callbacks attached to agents** (`before_tool_callback` / `after_tool_callback` / `after_model_callback` - `guardian.py` & `plugins.py`). `guardian.py` wraps tool calls on the `orchestrator`, `discovery`, and `draft_coach` whereas our `AuditLogPlugin` observes every agent turn.
+> _**Note:** If the diagram is not visible, please refresh the page._
 
 ```mermaid
 graph TD
