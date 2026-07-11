@@ -43,13 +43,13 @@ python -m venv .venv && .venv\Scripts\activate # Windows
 # source .venv/bin/activate                    # Mac/Linux
 pip install -r requirements.txt
 
-adk web src/pathpilot --no-reload              # backend :8000  (--no-reload required on Windows)
+adk web src/pathpilot                          # backend locahost:8000
 ```
 
 In a second terminal:
 
 ```bash
-cd ui && npm install && npm run dev            # frontend :3000
+cd ui && npm install && npm run dev            # frontend localhost:3000
 ```
 
 Run the test suite:
