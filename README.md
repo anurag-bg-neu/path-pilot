@@ -15,7 +15,7 @@ Most job search tools carry the risk of AI-fabricated applications & require too
 
 | Step | Agent             | What happens                                                                                                                         |
 |------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| 1    | **Discovery**     | Finds scholarships, grants and eligible roles via live job scrapings.                                                                |
+| 1    | **Discovery**     | Finds eligible jobs, scholarships via apify scrapings data.                                                                          |
 | 2    | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT)                                                            |
 | 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile before finalizing the ranked table                                    |
 | 4    | **Draft Coach**   | Drafts cover letters and outreach using *only* facts the job seeker provides                                                         |
