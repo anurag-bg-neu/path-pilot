@@ -39,7 +39,7 @@ In the first  terminal:
 ```bash
 git clone https://github.com/anurag-bg-neu/path-pilot.git
 cd path-pilot
-cp .env.example .env                           # add GOOGLE_API_KEY & APIFY_TOKEN
+cp .env.example .env                           # add relevant Keys & Tokens.
 
 python -m venv .venv && .venv\Scripts\activate # Windows
 # source .venv/bin/activate                    # Mac/Linux
