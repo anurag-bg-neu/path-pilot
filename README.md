@@ -1,6 +1,6 @@
 # **_PathPilot: A multi-agent assistant for all job seekers._**
 
-<img src="assets/kaggle-thumbnail.png" alt="PathPilot cover banner" width="100%">
+<img src="assets/thumbnail.png" alt="PathPilot cover banner" width="100%">
 
 <!--
 - _Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and [Google AI Studio's Gemini API](https://aistudio.google.com/)._
