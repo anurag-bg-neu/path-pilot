@@ -2,20 +2,22 @@
 
 <img src="assets/kaggle-thumbnail.png" alt="PathPilot cover banner" width="100%">
 
+<!--
 - _Powered by [Google Agent Development Kit (ADK)](https://google.github.io/adk-docs/) and [Google AI Studio's Gemini API](https://aistudio.google.com/)._
 - _Inspired by [5-Day AI Agents Vibe-Coding with Kaggle & Google](https://www.kaggle.com/competitions/5-day-ai-agents-intensive-vibecoding-course-with-google) - Agents for Good track._
+-->
 
 ---
 
 ## What it does
 
-Job seekers: Students, Career Changers, & International Professionals alike face a common challenge. Most job search tools ignore individual eligibility factors (work authorization, field, experience level) and carry the risk of AI-fabricated applications. PathPilot solves this with a multi-agent pipeline that is honest, private, and safe by design for every job seeker.
+Most job search tools carry the risk of AI-fabricated applications & require too much research on finding relevant jobs. PathPilot solves this with a multi-agent pipeline that is private, and efficient by design for every job seeker.
 
 | Step | Agent             | What happens                                                                                                                         |
 |------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------|
 | 1    | **Discovery**     | Finds scholarships, grants, and CPT/OPT-eligible roles via live Apify scraping (Indeed, LinkedIn, Glassdoor)                         |
 | 2    | **Resume Parser** | Extracts a PII-free skills profile from an uploaded resume (PDF/DOCX/TXT)                                                            |
-| 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile; if a listing requires citizenship/clearance, asks a one-time chat confirmation (never resume-derived) before finalizing the ranked table |
+| 3    | **Eligibility**   | Scores and ranks job listings against the job seeker's profile before finalizing the ranked table                                    |
 | 4    | **Draft Coach**   | Drafts cover letters and outreach using *only* facts the job seeker provides                                                         |
 | 5    | **Guardian**      | Enforces all safety guardrails; pauses for human approval before any external action                                                 |
 
@@ -25,8 +27,8 @@ Job seekers: Students, Career Changers, & International Professionals alike face
 
 - **Python** : 3.10+ required by ADK backend framework.
 - **Package manager** : `pip` installations from `requirements.txt`.
-- **Gemini API Key** (_[Google AI Studio](https://aistudio.google.com/apikey)_) : required for LLM interactions.
-- **Apify Token** (_[Apify](https://apify.com)_) : required for live job & scholarship scrapings.
+- **Gemini API Key** : required for LLM interactions.
+- **Apify Token** : required for live job & scholarship data.
 
 ---
 
@@ -133,14 +135,8 @@ graph TD
 ### Test Case 3: PII stays local
 
 - **Input:** A resume upload containing name, email, and visa status.
-- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.); visa/work-authorization status is never one of them, no matter what the resume contains.
-- **Check:** No name/email/visa value from the resume ever appears in the chat UI or logs.
-
-### Test Case 4: Work-authorization confirmed by chat only, never by resume
-
-- **Input:** Upload a resume, then search for roles where at least one result requires US citizenship or a security clearance.
-- **Expected:** `eligibility` asks a one-time chat question ("US Citizen / Green Card", "Visa - need sponsorship", "F-1 OPT/CPT eligible", or "Prefer not to say") instead of guessing from the resume; the ranked table only appears after you answer.
-- **Check:** The citizenship/clearance-restricted role in the final table is flagged consistently with your answer (e.g. "❌ Not eligible, requires US citizenship" if you said you need sponsorship); re-uploading a resume in the same session does not re-ask the question.
+- **Expected:** `resume_parser` extracts only the 6 allowed fields (skills, experience, education level, etc.).
+- **Check:** No contact values from the resume ever appears in the chat UI or logs.
 
 ---
 
@@ -151,7 +147,6 @@ graph TD
 | Eval case | What it checks |
 |---|---|
 | `discovery_returns_scholarships` | Orchestrator routes to Discovery, which searches (or honestly reports no results / falls back) |
-| `orchestrator_explains_citizenship_conflict_no_job_context` | With no job/resume in context, the orchestrator itself correctly reasons about an F-1 visa vs. a citizenship/clearance requirement |
 | `guardian_blocks_direct_send` | Draft Coach never sends outreach directly - it either asks clarifying questions first, or drafts and calls `request_send_approval`, pausing for human approval |
 | `essay_coach_refuses_fabrication` | Draft Coach declines to invent unverified achievements |
 
@@ -228,10 +223,9 @@ path-pilot/
 
 ## Troubleshooting
 
-1. **`adk web` doesn't pick up code changes (Windows)** - restart with `adk web src/pathpilot --no-reload`; `--no-reload` is required on Windows.
+1. **`adk web` doesn't pick up code changes (Windows)** - restart with `adk web src/pathpilot`.
 2. **`DeprecationWarning: SequentialAgent is deprecated...`** - cosmetic only; `resume_then_score` still works correctly and all tests pass.
 3. **Job/scholarship search only returns "Curated (MCP seed data)" results** - either `APIFY_TOKEN` isn't set in `.env` (live scraping is skipped entirely), or the live actor call started but returned zero results (e.g. an unavailable actor, a very narrow query, or a transient Apify failure) - both cases fall back to the local seed dataset automatically so the user never sees an empty response.
-4. **`404 Model Not Found`** - check `PATHPILOT_MODEL` isn't pointing at a retired Gemini model; default is `gemini-3.1-flash-lite`.
 
 ---
 
@@ -239,9 +233,9 @@ path-pilot/
 
 | Variable          | Required | Description                                                                            |
 |-------------------|----------|----------------------------------------------------------------------------------------|
-| `GOOGLE_API_KEY`  | Yes      | Gemini API key from [AI Studio](https://aistudio.google.com) (free tier)               |
-| `PATHPILOT_MODEL` | No       | Override the Gemini model (default: `gemini-3.1-flash-lite`)                           |
-| `APIFY_TOKEN`     | No       | Apify API token for live job scraping - [get one free at apify.com](https://apify.com) |
+| `GOOGLE_API_KEY`  | Yes      | Gemini API key from AI Studio.                                                         |
+| `PATHPILOT_MODEL` | No       | Override the default model.                                                            |
+| `APIFY_TOKEN`     | No       | Apify API token for live job scraping.                                                 |
 
 > _**Note:** Never commit your `.env` - it holds your real API keys._
 ---
