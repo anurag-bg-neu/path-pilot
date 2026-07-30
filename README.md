@@ -1,4 +1,4 @@
-# **_PathPilot: Privacy first multi-agent assistant for all job seekers._**
+# **_PathPilot: A multi-agent assistant for all job seekers._**
 
 <img src="assets/kaggle-thumbnail.png" alt="PathPilot cover banner" width="100%">
 
