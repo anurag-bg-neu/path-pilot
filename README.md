@@ -1,4 +1,4 @@
-# **_PathPilot: A multi-agent assistant for all job seekers._**
+# **_PathPilot: A Multi-Agent assistant for all job seekers._**
 
 <img src="assets/thumbnail.png" alt="PathPilot cover banner" width="100%">
 
@@ -57,7 +57,7 @@ cd ui && npm install && npm run dev            # frontend (localhost:3000)
 Run the test suite:
 
 ```bash
-pytest                                         # 6/6 passing
+pytest
 ```
 
 Run the agent evals (real LLM calls, check [Evals](#evals)):
@@ -114,7 +114,7 @@ graph TD
 | PII stays local          | Resume content parsed locally into a PII-free profile; raw text never forwarded                                           |
 | Prompt-injection defense | Fetched web content is screened and redacted before the LLM sees it                                                       |
 | Audit log                | `AuditLogPlugin` emits structured JSON for every agent turn and tool call                                                 |
-| Free-tier only           | Gemini Flash via AI Studio free tier - no billing required                                                                |
+| Free-tier only           | Gemini Flash via AI Studio free tier                                                                                      |
 
 ---
 
@@ -162,12 +162,6 @@ adk eval src/pathpilot evals/pathpilot_eval.test.json --config_file_path evals/e
 > _**Note:** this makes real Gemini calls and is subject to free-tier rate limits (15 req/min). `--print_detailed_results` shows the actual prompt/response/tool-calls per case, read it when a case fails, since the LLM judge can occasionally misjudge a correct response (sampling noise at `num_samples: 1`, forced down from the recommended 3+ by the free tier)._
 
 ---
-
-<!--
-## Demo
-
-▶ [YouTube link](https://youtu.be/cAFQcutAnm8)
--->
 
 ## Project layout
 
